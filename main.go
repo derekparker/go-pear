@@ -6,10 +6,21 @@ import (
 	"os/exec"
 	"os"
 	"strings"
+	"gopkg.in/v1/yaml"
+	"io/ioutil"
 )
 
+type Config struct {
+	Devs map[string]string
+}
+
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) == 1 {
+		println(user())
+		os.Exit(0)
+	}
+
+	if len(os.Args) < 3 {
 		log.Fatal("Must supply 2 arguments")
 	}
 
@@ -49,4 +60,41 @@ func setPair(dev1, dev2 string, args ...string) {
 	if err != nil {
 		log.Print(err)
 	}
+}
+
+func savePearrc(conf *Config, path string) error {
+	contents, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, contents, os.ModeExclusive)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readPearrc(path string) (*Config, error) {
+	conf := &Config{}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	contents, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	err = yaml.Unmarshal(contents, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return conf, nil
 }
