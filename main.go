@@ -88,7 +88,7 @@ func getName(devName string) string {
 	buf := bufio.NewReader(os.Stdin)
 	fullName, err := buf.ReadString('\n')
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Could not read from stdin: ", err)
 	}
 
 	return trimNewline(fullName)
