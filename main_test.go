@@ -80,9 +80,11 @@ func TestSavePearrc(t *testing.T) {
 func TestCheckPairWithUnknownDev(t *testing.T) {
 	oldStdout := os.Stdout
 	expectedFullName := "new developer"
-	pair := []string{"newdev"}
+	pair := []string{"knowndev", "newdev"}
 	conf := &Config{
-		Devs: make(map[string]string),
+		Devs: map[string]string{
+			"knowndev": "Known Dev",
+		},
 	}
 
 	tmp, err := ioutil.TempFile("", "")
@@ -127,7 +129,7 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 		t.Error("Could not read from temp file")
 	}
 
-	if string(output) != "Please enter your full name:\n" {
+	if string(output) != "Please enter your full name for newdev:\n" {
 		t.Error("Question output was incorrect")
 	}
 

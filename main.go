@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	pair := os.Args[1:2]
+	pair := os.Args[1:3]
 
 	checkPair(pair, conf)
 	setPair(pair)
