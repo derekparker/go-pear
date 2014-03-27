@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -14,7 +15,9 @@ type Config struct {
 	Devs map[string]string
 }
 
-const pearrcpath = "~/.pearrc"
+func pearrcpath() string {
+	return path.Join(os.Getenv("HOME"), ".pearrc")
+}
 
 func main() {
 	if len(os.Args) == 1 {
@@ -26,7 +29,7 @@ func main() {
 		log.Fatal("Must supply 2 arguments")
 	}
 
-	conf, err := readPearrc(pearrcpath)
+	conf, err := readPearrc(pearrcpath())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -34,7 +37,7 @@ func main() {
 
 	checkPair(pair, conf)
 	setPair(pair)
-	savePearrc(conf, pearrcpath)
+	savePearrc(conf, pearrcpath())
 }
 
 func globalUser() string {
