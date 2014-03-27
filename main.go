@@ -109,7 +109,9 @@ func savePearrc(conf *Config, path string) error {
 }
 
 func readPearrc(path string) (*Config, error) {
-	conf := &Config{}
+	conf := &Config{
+		Devs: make(map[string]string),
+	}
 
 	file, err := os.Open(path)
 	if err != nil {
