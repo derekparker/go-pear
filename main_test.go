@@ -14,8 +14,8 @@ func mockHomeEnv() {
 	os.Setenv("HOME", "fixtures/integration")
 }
 
-func mockStdin(t *testing.T) {
-	fi, err := os.Open("fixtures/integration/fullName.txt")
+func mockStdin(t *testing.T, path string) {
+	fi, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func restorePearrc(t *testing.T) {
 
 func TestPear(t *testing.T) {
 	mockHomeEnv()
-	mockStdin(t)
+	mockStdin(t, "fixtures/integration/fullName.txt")
 	tmp, oldstdout := mockStdout(t)
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
@@ -166,7 +166,7 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 		t.Error("Could not create temp file")
 	}
 
-	mockStdin(t)
+	mockStdin(t, "fixtures/integration/fullName.txt")
 	tmp, oldstdout := mockStdout(t)
 	defer cleanupStdout(t, tmp, oldstdout)
 	checkPair(pair, conf)
