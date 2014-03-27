@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jessevdk/go-flags"
 	"gopkg.in/v1/yaml"
 	"io/ioutil"
 	"log"
@@ -16,11 +17,22 @@ type Config struct {
 	Devs map[string]string
 }
 
+var opts struct {
+	File string `short:"f" long:"file" description:"Optional alternative git config file"`
+}
+
 func pearrcpath() string {
 	return path.Join(os.Getenv("HOME"), ".pearrc")
 }
 
 func main() {
+	var setPairArgs []string
+
+	pair, err := flags.ParseArgs(&opts, os.Args[1:])
+	if err != nil {
+		log.Fatal("Parse failed: ", err)
+	}
+
 	if len(os.Args) == 1 {
 		fmt.Println(user())
 		os.Exit(0)
@@ -30,14 +42,18 @@ func main() {
 		log.Fatal("Must supply 2 arguments")
 	}
 
+	if opts.File != "" {
+		setPairArgs = []string{"--file", opts.File}
+	}
+
 	conf, err := readPearrc(pearrcpath())
 	if err != nil {
 		log.Fatal(err)
 	}
-	pair := os.Args[1:3]
 
 	checkPair(pair, conf)
-	setPair(pair)
+	fullNamePair := []string{conf.Devs[pair[0]], conf.Devs[pair[1]]}
+	setPair(fullNamePair, setPairArgs...)
 	savePearrc(conf, pearrcpath())
 }
 

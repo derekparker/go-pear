@@ -66,7 +66,7 @@ func TestPear(t *testing.T) {
 		restorePearrc(t)
 	}()
 
-	os.Args = []string{"pear", "dev1", "dev2"}
+	os.Args = []string{"pear", "dev1", "dev2", "--file", "fixtures/test.config"}
 
 	main()
 
@@ -77,6 +77,11 @@ func TestPear(t *testing.T) {
 
 	if len(conf.Devs) != 2 {
 		t.Error("Devs were not recorded")
+	}
+
+	expected := "Full Name A and Person B"
+	if currentUser() != expected {
+		t.Errorf("Expected %s got %s", expected, currentUser())
 	}
 }
 
