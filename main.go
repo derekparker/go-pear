@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"gopkg.in/v1/yaml"
 	"io/ioutil"
@@ -54,7 +55,7 @@ func user(args ...string) string {
 		log.Printf("user lookup failed with: %s", err)
 	}
 
-	return trimNewline(name)
+	return trimNewline(string(name))
 }
 
 func setPair(pairs []string, args ...string) {
@@ -79,17 +80,18 @@ func checkPair(pair []string, conf *Config) {
 }
 
 func getName(devName string) string {
-	_, err := fmt.Println("Please enter your full name:")
+	_, err := fmt.Printf("Please enter your full name for %s:\n", devName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fullname, err := ioutil.ReadAll(os.Stdin)
+	buf := bufio.NewReader(os.Stdin)
+	fullName, err := buf.ReadString('\n')
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return trimNewline(fullname)
+	return trimNewline(fullName)
 }
 
 func savePearrc(conf *Config, path string) error {
@@ -132,6 +134,6 @@ func readPearrc(path string) (*Config, error) {
 	return conf, nil
 }
 
-func trimNewline(s []byte) string {
-	return strings.TrimSuffix(string(s), "\n")
+func trimNewline(s string) string {
+	return strings.TrimSuffix(s, "\n")
 }
