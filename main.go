@@ -1,22 +1,24 @@
 package main
 
 import (
-	"bytes"
-	"log"
-	"os/exec"
-	"os"
-	"strings"
+	"fmt"
 	"gopkg.in/v1/yaml"
 	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
 )
 
 type Config struct {
 	Devs map[string]string
 }
 
+const pearrcpath = "~/.pearrc"
+
 func main() {
 	if len(os.Args) == 1 {
-		println(user())
+		fmt.Println(user())
 		os.Exit(0)
 	}
 
@@ -24,9 +26,15 @@ func main() {
 		log.Fatal("Must supply 2 arguments")
 	}
 
-	dev1 := os.Args[1]
-	dev2 := os.Args[2]
-	setPair(dev1, dev2)
+	conf, err := readPearrc(pearrcpath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pair := os.Args[1:2]
+
+	checkPair(pair, conf)
+	setPair(pair)
+	savePearrc(conf, pearrcpath)
 }
 
 func globalUser() string {
@@ -43,23 +51,42 @@ func user(args ...string) string {
 		log.Printf("user lookup failed with: %s", err)
 	}
 
-	return strings.TrimSuffix(string(name), "\n")
+	return trimNewline(name)
 }
 
-func setPair(dev1, dev2 string, args ...string) {
-	pair := bytes.NewBufferString(dev1)
-	if dev2 != "" {
-		pair.WriteString(" and " + dev2)
-	}
+func setPair(pairs []string, args ...string) {
+	pair := strings.Join(pairs, " and ")
 
 	options := append([]string{"config"}, args...)
-	options = append(options, []string{"user.name", pair.String()}...)
+	options = append(options, []string{"user.name", pair}...)
 
 	cmd := exec.Command("git", options...)
 	err := cmd.Run()
 	if err != nil {
 		log.Print(err)
 	}
+}
+
+func checkPair(pair []string, conf *Config) {
+	for _, dev := range pair {
+		if _, ok := conf.Devs[dev]; !ok {
+			conf.Devs[dev] = getName(dev)
+		}
+	}
+}
+
+func getName(devName string) string {
+	_, err := fmt.Println("Please enter your full name:")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fullname, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return trimNewline(fullname)
 }
 
 func savePearrc(conf *Config, path string) error {
@@ -97,4 +124,8 @@ func readPearrc(path string) (*Config, error) {
 	}
 
 	return conf, nil
+}
+
+func trimNewline(s []byte) string {
+	return strings.TrimSuffix(string(s), "\n")
 }
