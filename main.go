@@ -108,7 +108,10 @@ func readPearrc(path string) (*Config, error) {
 
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		file, err = os.Create(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	defer file.Close()

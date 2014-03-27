@@ -29,6 +29,22 @@ func TestSetPairWithTwoDevs(t *testing.T) {
 	}
 }
 
+func TestReadPearrc(t *testing.T) {
+	nonExistantPath := "fixtures/.fakepearrc"
+
+	readPearrc(nonExistantPath)
+
+	f, err := os.Open(nonExistantPath)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer func() {
+		f.Close()
+		os.Remove(nonExistantPath)
+	}()
+}
+
 func TestSavePearrc(t *testing.T) {
 	expected := map[string]string{
 		"dparker":   "Derek Parker",
