@@ -26,22 +26,17 @@ func pearrcpath() string {
 }
 
 func main() {
-	var setPairArgs []string
-
-	pair, err := flags.ParseArgs(&opts, os.Args[1:])
-	if err != nil {
-		log.Fatal("Parse failed: ", err)
-	}
-
 	if len(os.Args) == 1 {
 		fmt.Println(user())
 		os.Exit(0)
 	}
 
-	if len(os.Args) < 3 {
-		log.Fatal("Must supply 2 arguments")
+	devs, err := flags.ParseArgs(&opts, os.Args[1:])
+	if err != nil {
+		log.Fatal("Parse failed: ", err)
 	}
 
+	var setPairArgs []string
 	if opts.File != "" {
 		setPairArgs = []string{"--file", opts.File}
 	}
@@ -51,9 +46,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	checkPair(pair, conf)
-	fullNamePair := []string{conf.Devs[pair[0]], conf.Devs[pair[1]]}
-	setPair(fullNamePair, setPairArgs...)
+	checkPair(devs, conf)
+
+	var fullNames []string
+	for _, dev := range devs {
+		fullNames = append(fullNames, conf.Devs[dev])
+	}
+
+	setPair(fullNames, setPairArgs...)
 	savePearrc(conf, pearrcpath())
 }
 
