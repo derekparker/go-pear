@@ -11,11 +11,11 @@ func currentUser() string {
 }
 
 func mockHomeEnv() {
-	os.Setenv("HOME", "fixtures/mocks")
+	os.Setenv("HOME", "fixtures/integration")
 }
 
 func mockStdin(t *testing.T) {
-	fi, err := os.Open("fixtures/mocks/fullName.txt")
+	fi, err := os.Open("fixtures/integration/fullName.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func cleanupStdout(t *testing.T, tmp *os.File, stdout *os.File) {
 }
 
 func restorePearrc(t *testing.T) {
-	err := ioutil.WriteFile("fixtures/mocks/.pearrc", []byte("devs:\n  dev1: Full Name A"), os.ModeExclusive)
+	err := ioutil.WriteFile("fixtures/integration/.pearrc", []byte("devs:\n  dev1: Full Name A"), os.ModeExclusive)
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,7 +70,7 @@ func TestPear(t *testing.T) {
 
 	main()
 
-	conf, err := readPearrc("fixtures/mocks/.pearrc")
+	conf, err := readPearrc("fixtures/integration/.pearrc")
 	if err != nil {
 		t.Error(err)
 	}
