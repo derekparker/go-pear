@@ -51,14 +51,10 @@ func cleanupStdout(t *testing.T, tmp *os.File, stdout *os.File) {
 }
 
 func restorePearrc(t *testing.T) {
-	fi, err := os.Open("fixtures/mocks/.pearrc")
+	err := ioutil.WriteFile("fixtures/mocks/.pearrc", []byte("devs:\n  dev1: Full Name A"), os.ModeExclusive)
 	if err != nil {
 		t.Error(err)
 	}
-
-	defer fi.Close()
-
-	fi.Write([]byte("devs:\n\tdev1: Full Name A"))
 }
 
 func TestPear(t *testing.T) {
