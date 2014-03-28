@@ -14,11 +14,13 @@ import (
 )
 
 type Config struct {
-	Devs map[string]string
+	Email string
+	Devs  map[string]string
 }
 
 var opts struct {
-	File string `short:"f" long:"file" description:"Optional alternative git config file"`
+	File  string `short:"f" long:"file" description:"Optional alternative git config file"`
+	Email string `short:"e" long:"email" description:"Base author email"`
 }
 
 func pearrcpath() string {
@@ -47,6 +49,7 @@ func main() {
 	}
 
 	checkPair(devs, conf)
+	checkEmail(conf)
 
 	var fullNames []string
 	for _, dev := range devs {
@@ -87,6 +90,12 @@ func setPair(pairs []string, args ...string) {
 	}
 }
 
+func checkEmail(conf *Config) {
+	if conf.Email == "" {
+		conf.Email = getEmail()
+	}
+}
+
 func checkPair(pair []string, conf *Config) {
 	for _, dev := range pair {
 		if _, ok := conf.Devs[dev]; !ok {
@@ -96,18 +105,31 @@ func checkPair(pair []string, conf *Config) {
 }
 
 func getName(devName string) string {
-	_, err := fmt.Printf("Please enter your full name for %s:\n", devName)
+	prompt := fmt.Sprintf("Please enter a full name for %s:", devName)
+	return promptForInput(prompt)
+}
+
+func getEmail() string {
+	return promptForInput("Please provide base author email:")
+}
+
+func promptForInput(prompt string) string {
+	_, err := fmt.Println(prompt)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	return readInput()
+}
+
+func readInput() string {
 	buf := bufio.NewReader(os.Stdin)
-	fullName, err := buf.ReadString('\n')
+	inputString, err := buf.ReadString('\n')
 	if err != nil {
 		log.Fatal("Could not read from stdin: ", err)
 	}
 
-	return trimNewline(fullName)
+	return trimNewline(inputString)
 }
 
 func savePearrc(conf *Config, path string) error {
