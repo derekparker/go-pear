@@ -225,17 +225,12 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 		},
 	}
 
-	tmp, err := ioutil.TempFile("", "")
-	if err != nil {
-		t.Error("Could not create temp file")
-	}
-
 	mockStdin(t, "fixtures/integration/fullName.txt")
 	tmp, oldstdout := mockStdout(t)
 	defer cleanupStdout(t, tmp, oldstdout)
 	checkPair(pair, conf)
 
-	_, err = tmp.Seek(0, os.SEEK_SET)
+	_, err := tmp.Seek(0, os.SEEK_SET)
 	if err != nil {
 		t.Error(err)
 	}
