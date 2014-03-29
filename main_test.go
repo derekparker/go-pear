@@ -15,13 +15,46 @@ func mockHomeEnv(dir string) {
 	os.Setenv("HOME", dir)
 }
 
-func mockStdin(t *testing.T, path string) {
-	fi, err := os.Open(path)
+func closeFile(f *os.File) {
+	name := f.Name()
+	f.Close()
+	os.Remove(name)
+}
+
+func createPearrc(t *testing.T, contents []byte) *os.File {
+	p := path.Join(os.Getenv("HOME"), ".pearrc")
+	f, err := os.Create(p)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	os.Stdin = fi
+	_, err = f.Write(contents)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return f
+}
+
+func mockStdin(t *testing.T, contents string) *os.File {
+	tmp, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tmp.WriteString(contents + "\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tmp.Seek(0, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	os.Stdin = tmp
+
+	return tmp
 }
 
 func mockStdout(t *testing.T) (*os.File, *os.File) {
@@ -61,13 +94,13 @@ func restorePearrc(t *testing.T, contents []byte) {
 
 func TestPear(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
-	mockStdin(t, "fixtures/integration/fullName.txt")
+	tmpstdin := mockStdin(t, "Person B")
 	tmp, oldstdout := mockStdout(t)
-	originalPearrc := []byte("email: foo@example.com\ndevs:\n  dev1: Full Name A")
-	restorePearrc(t, originalPearrc)
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  dev1: Full Name A"))
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
-		restorePearrc(t, originalPearrc)
+		closeFile(tmpstdin)
+		closeFile(pearrc)
 	}()
 
 	os.Args = []string{"pear", "dev1", "dev2", "--file", "fixtures/test.config"}
@@ -91,14 +124,14 @@ func TestPear(t *testing.T) {
 
 func TestPearOneDevNoSavedEmail(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
-	mockStdin(t, "fixtures/integration/email_prompt.txt")
+	tmpstdin := mockStdin(t, "dev@pear.biz")
 	tmp, oldstdout := mockStdout(t)
 
-	originalPearrc := []byte("devs:\n  dev1: Full Name A")
-	restorePearrc(t, originalPearrc)
+	pearrc := createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
-		restorePearrc(t, originalPearrc)
+		closeFile(tmpstdin)
+		closeFile(pearrc)
 	}()
 
 	os.Args = []string{"pear", "dev1", "--email", "foo@biz.net", "--file", "fixtures/test.config"}
@@ -118,13 +151,15 @@ func TestPearOneDevNoSavedEmail(t *testing.T) {
 func TestCheckEmail(t *testing.T) {
 	conf := Config{}
 
-	mockStdin(t, "fixtures/integration/email_prompt.txt")
+	mockHomeEnv("fixtures/integration")
+	tempstdin := mockStdin(t, "dev@pear.biz")
 	tmp, oldstdout := mockStdout(t)
+	pearrc := createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
 
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
-		originalPearrc := []byte("devs:\n  dev1: Full Name A")
-		restorePearrc(t, originalPearrc)
+		closeFile(tempstdin)
+		closeFile(pearrc)
 	}()
 
 	checkEmail(&conf)
@@ -225,9 +260,12 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 		},
 	}
 
-	mockStdin(t, "fixtures/integration/fullName.txt")
+	tmpstdin := mockStdin(t, "Person B")
 	tmp, oldstdout := mockStdout(t)
-	defer cleanupStdout(t, tmp, oldstdout)
+	defer func() {
+		cleanupStdout(t, tmp, oldstdout)
+		closeFile(tmpstdin)
+	}()
 	checkPair(pair, conf)
 
 	_, err := tmp.Seek(0, os.SEEK_SET)
