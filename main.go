@@ -57,7 +57,8 @@ func main() {
 		fullNames = append(fullNames, conf.Devs[dev])
 	}
 
-	setPair(fullNames, setPairArgs...)
+	email := formatEmail(conf.Email, devs)
+	setPair(email, fullNames, setPairArgs...)
 	savePearrc(conf, pearrcpath())
 }
 
@@ -78,17 +79,27 @@ func user(args ...string) string {
 	return trimNewline(string(name))
 }
 
-func setPair(pairs []string, args ...string) {
-	pair := strings.Join(pairs, " and ")
-
+func email(args ...string) string {
 	options := append([]string{"config"}, args...)
-	options = append(options, []string{"user.name", pair}...)
+	options = append(options, []string{"--get", "user.email"}...)
 
 	cmd := exec.Command("git", options...)
-	err := cmd.Run()
+	email, err := cmd.Output()
 	if err != nil {
-		log.Print(err)
+		log.Printf("user lookup failed with: %s", err)
 	}
+
+	return trimNewline(string(email))
+}
+
+func setPair(email string, pairs []string, args ...string) {
+	pair := strings.Join(pairs, " and ")
+
+	opts := append(args, "user.name", pair)
+	git("config", opts...)
+
+	opts = append(args, "user.email", email)
+	git("config", opts...)
 }
 
 func checkEmail(conf *Config) {
@@ -175,6 +186,21 @@ func readPearrc(path string) (*Config, error) {
 	return conf, nil
 }
 
+func formatEmail(email string, devs []string) string {
+	parts := strings.Split(email, "@")
+	devlist := strings.Join(devs, "+")
+	return fmt.Sprintf("%s+%s@%s", parts[0], devlist, parts[1])
+}
+
 func trimNewline(s string) string {
 	return strings.TrimSuffix(s, "\n")
+}
+
+func git(subcommand string, opts ...string) {
+	args := append([]string{subcommand}, opts...)
+	cmd := exec.Command("git", args...)
+	err := cmd.Run()
+	if err != nil {
+		log.Print(err)
+	}
 }

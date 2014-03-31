@@ -11,6 +11,10 @@ func currentUser() string {
 	return user("--file", "fixtures/test.config")
 }
 
+func currentEmail() string {
+	return email("--file", "fixtures/test.config")
+}
+
 func mockHomeEnv(dir string) {
 	os.Setenv("HOME", dir)
 }
@@ -116,9 +120,14 @@ func TestPear(t *testing.T) {
 		t.Error("Devs were not recorded")
 	}
 
-	expected := "Full Name A and Person B"
-	if currentUser() != expected {
-		t.Errorf("Expected %s got %s", expected, currentUser())
+	expectedUser := "Full Name A and Person B"
+	if currentUser() != expectedUser {
+		t.Errorf("Expected %s got %s", expectedUser, currentUser())
+	}
+
+	expectedEmail := "foo+dev1+dev2@example.com"
+	if currentEmail() != expectedEmail {
+		t.Errorf("Expected %s got %s", expectedEmail, currentEmail())
 	}
 }
 
@@ -185,7 +194,7 @@ func TestCheckEmail(t *testing.T) {
 }
 
 func TestSetPairWithOneDev(t *testing.T) {
-	setPair([]string{"user1"}, "--file", "fixtures/test.config")
+	setPair("foo@example.com", []string{"user1"}, "--file", "fixtures/test.config")
 	expected := "user1"
 
 	if currentUser() != expected {
@@ -195,11 +204,17 @@ func TestSetPairWithOneDev(t *testing.T) {
 
 func TestSetPairWithTwoDevs(t *testing.T) {
 	pair := []string{"user1", "user2"}
-	setPair(pair, "--file", "fixtures/test.config")
-	expected := "user1 and user2"
+	formattedEmail := formatEmail("dev@example.com", pair)
+	setPair(formattedEmail, pair, "--file", "fixtures/test.config")
+	expectedUser := "user1 and user2"
+	expectedEmail := "dev+user1+user2@example.com"
 
-	if currentUser() != expected {
-		t.Errorf("Expected %s got %s", expected, currentUser())
+	if currentUser() != expectedUser {
+		t.Errorf("Expected %s got %s", expectedUser, currentUser())
+	}
+
+	if currentEmail() != expectedEmail {
+		t.Errorf("Expected %s got %s", expectedEmail, currentEmail())
 	}
 }
 
@@ -289,5 +304,25 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 
 	if fullName != expectedFullName {
 		t.Errorf("Expected %s got %s", expectedFullName, fullName)
+	}
+}
+
+func TestEmailFormat(t *testing.T) {
+	tests := []struct {
+		email    string
+		devs     []string
+		expected string
+	}{
+		{"dev@example.com", []string{"dev1"}, "dev+dev1@example.com"},
+		{"dev@example.com", []string{"dev1", "dev2"}, "dev+dev1+dev2@example.com"},
+		{"dev@example.com", []string{"dev1", "dev2", "dev3"}, "dev+dev1+dev2+dev3@example.com"},
+	}
+
+	for _, test := range tests {
+		actual := formatEmail(test.email, test.devs)
+
+		if actual != test.expected {
+			t.Errorf("Expected %s, got %s", test.expected, actual)
+		}
 	}
 }
