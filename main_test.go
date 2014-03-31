@@ -194,7 +194,7 @@ func TestCheckEmail(t *testing.T) {
 }
 
 func TestSetPairWithOneDev(t *testing.T) {
-	setPair("foo@example.com", []string{"user1"}, "--file", "fixtures/test.config")
+	setPair("foo@example.com", []string{"user1"}, []string{"--file", "fixtures/test.config"})
 	expected := "user1"
 
 	if currentUser() != expected {
@@ -205,7 +205,7 @@ func TestSetPairWithOneDev(t *testing.T) {
 func TestSetPairWithTwoDevs(t *testing.T) {
 	pair := []string{"user1", "user2"}
 	formattedEmail := formatEmail("dev@example.com", pair)
-	setPair(formattedEmail, pair, "--file", "fixtures/test.config")
+	setPair(formattedEmail, pair, []string{"--file", "fixtures/test.config"})
 	expectedUser := "user1 and user2"
 	expectedEmail := "dev+user1+user2@example.com"
 

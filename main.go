@@ -52,7 +52,7 @@ func main() {
 	fullnames := checkPair(devs, conf)
 	email := formatEmail(checkEmail(conf), devs)
 
-	setPair(email, fullnames, setPairArgs...)
+	setPair(email, fullnames, setPairArgs)
 
 	savePearrc(conf, pearrcpath())
 }
@@ -77,7 +77,7 @@ func email(args ...string) string {
 	return trimNewline(string(email))
 }
 
-func setPair(email string, pairs []string, args ...string) {
+func setPair(email string, pairs []string, args []string) {
 	pair := strings.Join(pairs, " and ")
 
 	opts := append(args, "user.name", pair)
