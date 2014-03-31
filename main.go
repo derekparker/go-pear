@@ -3,14 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"gopkg.in/v1/yaml"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
+
+	"github.com/jessevdk/go-flags"
+	"gopkg.in/v1/yaml"
 )
 
 type Config struct {
