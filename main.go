@@ -49,16 +49,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	checkPair(devs, conf)
-	checkEmail(conf)
+	fullnames := checkPair(devs, conf)
+	email := formatEmail(checkEmail(conf), devs)
 
-	var fullNames []string
-	for _, dev := range devs {
-		fullNames = append(fullNames, conf.Devs[dev])
-	}
+	setPair(email, fullnames, setPairArgs...)
 
-	email := formatEmail(conf.Email, devs)
-	setPair(email, fullNames, setPairArgs...)
 	savePearrc(conf, pearrcpath())
 }
 
@@ -92,18 +87,25 @@ func setPair(email string, pairs []string, args ...string) {
 	git("config", opts)
 }
 
-func checkEmail(conf *Config) {
+func checkEmail(conf *Config) string {
 	if conf.Email == "" {
 		conf.Email = getEmail()
 	}
+
+	return conf.Email
 }
 
-func checkPair(pair []string, conf *Config) {
+func checkPair(pair []string, conf *Config) []string {
+	var fullnames []string
 	for _, dev := range pair {
 		if _, ok := conf.Devs[dev]; !ok {
 			conf.Devs[dev] = getName(dev)
 		}
+
+		fullnames = append(fullnames, conf.Devs[dev])
 	}
+
+	return fullnames
 }
 
 func getName(devName string) string {
