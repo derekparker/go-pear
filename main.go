@@ -67,27 +67,17 @@ func globalUser() string {
 }
 
 func user(args ...string) string {
-	options := append([]string{"config"}, args...)
-	options = append(options, []string{"--get", "user.name"}...)
+	options := append(args, []string{"--get", "user.name"}...)
 
-	cmd := exec.Command("git", options...)
-	name, err := cmd.Output()
-	if err != nil {
-		log.Printf("user lookup failed with: %s", err)
-	}
+	name := git("config", options)
 
 	return trimNewline(string(name))
 }
 
 func email(args ...string) string {
-	options := append([]string{"config"}, args...)
-	options = append(options, []string{"--get", "user.email"}...)
+	options := append(args, []string{"--get", "user.email"}...)
 
-	cmd := exec.Command("git", options...)
-	email, err := cmd.Output()
-	if err != nil {
-		log.Printf("user lookup failed with: %s", err)
-	}
+	email := git("config", options)
 
 	return trimNewline(string(email))
 }
@@ -96,10 +86,10 @@ func setPair(email string, pairs []string, args ...string) {
 	pair := strings.Join(pairs, " and ")
 
 	opts := append(args, "user.name", pair)
-	git("config", opts...)
+	git("config", opts)
 
 	opts = append(args, "user.email", email)
-	git("config", opts...)
+	git("config", opts)
 }
 
 func checkEmail(conf *Config) {
@@ -196,11 +186,13 @@ func trimNewline(s string) string {
 	return strings.TrimSuffix(s, "\n")
 }
 
-func git(subcommand string, opts ...string) {
+func git(subcommand string, opts []string) []byte {
 	args := append([]string{subcommand}, opts...)
 	cmd := exec.Command("git", args...)
-	err := cmd.Run()
+	out, err := cmd.Output()
 	if err != nil {
 		log.Print(err)
 	}
+
+	return out
 }
