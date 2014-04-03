@@ -20,8 +20,9 @@ type Config struct {
 }
 
 var opts struct {
-	File  string `short:"f" long:"file" description:"Optional alternative git config file"`
-	Email string `short:"e" long:"email" description:"Base author email"`
+	File   string `short:"f" long:"file" description:"Optional alternative git config file"`
+	Email  string `short:"e" long:"email" description:"Base author email"`
+	Global bool   `short:"g" long:"global" description:"Modify global git settings"`
 }
 
 func pearrcpath() string {
@@ -42,6 +43,10 @@ func main() {
 	var setPairArgs []string
 	if opts.File != "" {
 		setPairArgs = []string{"--file", opts.File}
+	}
+
+	if opts.Global {
+		setPairArgs = append(setPairArgs, "--global")
 	}
 
 	conf, err := readPearrc(pearrcpath())
