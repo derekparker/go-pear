@@ -37,7 +37,7 @@ Will change the git configuration to use just your id.
 
 Will let you setup your git configuration to reflect all the programmers that have contributed to a commit.
 
-### Changing Group/Email (Not yet implemented)
+### Changing Group/Email
 
 	$ pear --email dev@hashrocket.com
 
@@ -49,7 +49,7 @@ Will configure the email associated with commits, the programmers involved will 
 
 	dev+chriserin+derekparker@hashrocket.com
 
-### Changing Pairs globally (Not yet implemented)
+### Changing Pairs globally
 
 	$ pear --global chriserin derek parker.
 
