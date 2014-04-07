@@ -100,14 +100,14 @@ func TestPear(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
 	tmpstdin := mockStdin(t, "Person B")
 	tmp, oldstdout := mockStdout(t)
-	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  dev1: Full Name A"))
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A"))
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
 		closeFile(tmpstdin)
 		closeFile(pearrc)
 	}()
 
-	os.Args = []string{"pear", "Dev1", "Dev2", "--file", "fixtures/test.config"}
+	os.Args = []string{"pear", "DevB", "DevA", "--file", "fixtures/test.config"}
 
 	main()
 
@@ -125,7 +125,7 @@ func TestPear(t *testing.T) {
 		t.Errorf("Expected %s got %s", expectedUser, currentUser())
 	}
 
-	expectedEmail := "foo+dev1+dev2@example.com"
+	expectedEmail := "foo+deva+devb@example.com"
 	if currentEmail() != expectedEmail {
 		t.Errorf("Expected %s got %s", expectedEmail, currentEmail())
 	}

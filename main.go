@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -199,6 +200,8 @@ func sanitizeDevNames(devs []string) {
 	for i, dev := range devs {
 		devs[i] = strings.ToLower(dev)
 	}
+
+	sort.Strings(devs)
 }
 
 func git(subcommand string, opts []string) []byte {
