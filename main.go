@@ -40,6 +40,8 @@ func main() {
 		log.Fatal("Parse failed: ", err)
 	}
 
+	sanitizeDevNames(devs)
+
 	var setPairArgs []string
 	if opts.File != "" {
 		setPairArgs = []string{"--file", opts.File}
@@ -191,6 +193,12 @@ func formatEmail(email string, devs []string) string {
 
 func trimNewline(s string) string {
 	return strings.TrimSuffix(s, "\n")
+}
+
+func sanitizeDevNames(devs []string) {
+	for i, dev := range devs {
+		devs[i] = strings.ToLower(dev)
+	}
 }
 
 func git(subcommand string, opts []string) []byte {

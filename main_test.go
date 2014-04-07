@@ -107,7 +107,7 @@ func TestPear(t *testing.T) {
 		closeFile(pearrc)
 	}()
 
-	os.Args = []string{"pear", "dev1", "dev2", "--file", "fixtures/test.config"}
+	os.Args = []string{"pear", "Dev1", "Dev2", "--file", "fixtures/test.config"}
 
 	main()
 
