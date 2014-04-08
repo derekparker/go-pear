@@ -21,6 +21,7 @@ func mockHomeEnv(dir string) {
 		mode := os.ModePerm
 		err = os.Mkdir(dir, mode)
 		if err != nil {
+			os.Stderr.WriteString("Could not create directory")
 			os.Exit(2)
 		}
 	}
@@ -38,11 +39,13 @@ func createPearrc(t *testing.T, contents []byte) *os.File {
 	p := path.Join(os.Getenv("HOME"), ".pearrc")
 	f, err := os.Create(p)
 	if err != nil {
+		os.Stdout = os.Stderr
 		t.Fatalf("Could not create .pearrc %s", err)
 	}
 
 	_, err = f.Write(contents)
 	if err != nil {
+		os.Stdout = os.Stderr
 		t.Fatal("Could not write to .pearrc %s", err)
 	}
 
