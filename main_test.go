@@ -83,17 +83,11 @@ func mockStdout(t *testing.T) (*os.File, *os.File) {
 }
 
 func cleanupStdout(t *testing.T, tmp *os.File, stdout *os.File) {
-	name := tmp.Name()
 	err := tmp.Close()
-
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = os.Remove(name)
-	if err != nil {
-		t.Error(err)
-	}
 	os.Stdout = stdout
 }
 
