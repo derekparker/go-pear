@@ -38,12 +38,12 @@ func createPearrc(t *testing.T, contents []byte) *os.File {
 	p := path.Join(os.Getenv("HOME"), ".pearrc")
 	f, err := os.Create(p)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Could not create .pearrc %s", err)
 	}
 
 	_, err = f.Write(contents)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Could not write to .pearrc %s", err)
 	}
 
 	return f
