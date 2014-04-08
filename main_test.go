@@ -16,6 +16,15 @@ func currentEmail() string {
 }
 
 func mockHomeEnv(dir string) {
+	_, err := os.Open(dir)
+	if err != nil {
+		mode := os.ModePerm
+		err = os.Mkdir(dir, mode)
+		if err != nil {
+			os.Exit(2)
+		}
+	}
+
 	os.Setenv("HOME", dir)
 }
 
