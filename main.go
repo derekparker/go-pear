@@ -15,15 +15,18 @@ import (
 	"gopkg.in/v1/yaml"
 )
 
+const version = "1.0.0"
+
 type Config struct {
 	Email string
 	Devs  map[string]string
 }
 
 var opts struct {
-	File   string `short:"f" long:"file" description:"Optional alternative git config file"`
-	Email  string `short:"e" long:"email" description:"Base author email"`
-	Global bool   `short:"g" long:"global" description:"Modify global git settings"`
+	File    string `short:"f" long:"file" description:"Optional alternative git config file"`
+	Email   string `short:"e" long:"email" description:"Base author email"`
+	Global  bool   `short:"g" long:"global" description:"Modify global git settings"`
+	Version bool   `short:"v" long:"version" description:"Print version string"`
 }
 
 func pearrcpath() string {
@@ -39,6 +42,11 @@ func main() {
 	devs, err := flags.ParseArgs(&opts, os.Args[1:])
 	if err != nil {
 		log.Fatal("Parse failed: ", err)
+	}
+
+	if opts.Version {
+		fmt.Printf("Pear version %s\n", version)
+		os.Exit(0)
 	}
 
 	sanitizeDevNames(devs)
