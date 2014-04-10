@@ -1,3 +1,5 @@
+_pear
+*.tar.gz
 go-pear.test
 pear
 go-pear
