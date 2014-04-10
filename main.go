@@ -73,10 +73,6 @@ func main() {
 	savePearrc(conf, pearrcpath())
 }
 
-func globalUser() string {
-	return user()
-}
-
 func user(args ...string) string {
 	options := append(args, []string{"--get", "user.name"}...)
 
