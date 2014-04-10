@@ -51,7 +51,7 @@ Will configure the email associated with commits, the programmers involved will 
 
 ### Changing Pairs globally
 
-	$ pear --global chriserin derek parker.
+	$ pear --global chriserin derekparker
 
 Will configure git globally so that the contributing programmers will be credited in commits across all projects and repositories.
 
