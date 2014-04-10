@@ -31,6 +31,12 @@ Pear with no arguments will let you know what programmers are configured with gi
 
 Will change the git configuration to use just your id.
 
+### To remove local pear configuration
+
+	$ pear -u
+
+This will unset local user configuration and fall back to the global configuration.
+
 ### So you like giving credit
 
 	$ pear chriserin derekparker briandunn jackchristenson jonallured andrewdennis joshdavey

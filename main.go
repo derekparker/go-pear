@@ -26,6 +26,7 @@ var opts struct {
 	File    string `short:"f" long:"file" description:"Optional alternative git config file"`
 	Email   string `short:"e" long:"email" description:"Base author email"`
 	Global  bool   `short:"g" long:"global" description:"Modify global git settings"`
+	Unset   bool   `short:"u" long:"unset" description:"Unset local pear information"`
 	Version bool   `short:"v" long:"version" description:"Print version string"`
 }
 
@@ -46,6 +47,11 @@ func main() {
 
 	if opts.Version {
 		fmt.Printf("Pear version %s\n", version)
+		os.Exit(0)
+	}
+
+	if opts.Unset {
+		git("config", []string{"--remove-section", "user"})
 		os.Exit(0)
 	}
 
