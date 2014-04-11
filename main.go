@@ -42,7 +42,7 @@ func main() {
 
 	devs, err := flags.ParseArgs(&opts, os.Args[1:])
 	if err != nil {
-		log.Fatal("Parse failed: ", err)
+		return
 	}
 
 	if opts.Version {
