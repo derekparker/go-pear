@@ -34,15 +34,10 @@ func pearrcpath() string {
 	return path.Join(os.Getenv("HOME"), ".pearrc")
 }
 
-func main() {
-	if len(os.Args) == 1 {
-		fmt.Println(user())
-		os.Exit(0)
-	}
-
+func parseAndHandleFlags() ([]string, []string, error) {
 	devs, err := flags.ParseArgs(&opts, os.Args[1:])
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 
 	if opts.Version {
@@ -57,13 +52,22 @@ func main() {
 
 	sanitizeDevNames(devs)
 
-	var setPairArgs []string
+	var pairArgs []string
 	if opts.File != "" {
-		setPairArgs = []string{"--file", opts.File}
+		pairArgs = []string{"--file", opts.File}
 	}
 
 	if opts.Global {
-		setPairArgs = append(setPairArgs, "--global")
+		pairArgs = append(pairArgs, "--global")
+	}
+
+	return devs, pairArgs, nil
+}
+
+func main() {
+	if len(os.Args) == 1 {
+		fmt.Println(user())
+		os.Exit(0)
 	}
 
 	conf, err := readPearrc(pearrcpath())
@@ -71,11 +75,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fullnames := checkPair(devs, conf)
-	email := formatEmail(checkEmail(conf), devs)
+	devs, pairArgs, err := parseAndHandleFlags()
+	if err != nil {
+		return
+	}
 
-	setPair(email, fullnames, setPairArgs)
+	var (
+		fullnames = checkPair(devs, conf)
+		email     = formatEmail(checkEmail(conf), devs)
+	)
 
+	setPair(email, fullnames, pairArgs)
 	savePearrc(conf, pearrcpath())
 }
 
