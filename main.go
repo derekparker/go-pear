@@ -72,7 +72,8 @@ func main() {
 
 	conf, err := readPearrc(pearrcpath())
 	if err != nil {
-		log.Fatal(err)
+		os.Stderr.WriteString(err.Error())
+		os.Exit(1)
 	}
 
 	devs, pairArgs, err := parseAndHandleFlags()
