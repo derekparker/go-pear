@@ -1,19 +1,12 @@
 package main
 
 import (
+	"github.com/libgit2/git2go"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 )
-
-func currentUser() string {
-	return user("--file", "fixtures/test.config")
-}
-
-func currentEmail() string {
-	return email("--file", "fixtures/test.config")
-}
 
 func mockHomeEnv(dir string) {
 	_, err := os.Open(dir)
@@ -33,6 +26,20 @@ func closeFile(f *os.File) {
 	name := f.Name()
 	f.Close()
 	os.Remove(name)
+}
+
+func initTestGitConfig(path string, t *testing.T) *git.Config {
+	gitconfig, err := git.NewConfig()
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = gitconfig.AddFile(path, git.ConfigLevelHighest, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return gitconfig
 }
 
 func createPearrc(t *testing.T, contents []byte) *os.File {
@@ -127,13 +134,16 @@ func TestPear(t *testing.T) {
 	}
 
 	expectedUser := "Full Name A and Person B"
-	if currentUser() != expectedUser {
-		t.Errorf("Expected %s got %s", expectedUser, currentUser())
+	gitconfig := initTestGitConfig("fixtures/test.config", t)
+	actualUser := username(gitconfig)
+	if actualUser != expectedUser {
+		t.Errorf("Expected %s got %s", expectedUser, actualUser)
 	}
 
 	expectedEmail := "foo+deva+devb@example.com"
-	if currentEmail() != expectedEmail {
-		t.Errorf("Expected %s got %s", expectedEmail, currentEmail())
+	actualEmail := email(gitconfig)
+	if actualEmail != expectedEmail {
+		t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
 	}
 }
 
@@ -200,27 +210,34 @@ func TestCheckEmail(t *testing.T) {
 }
 
 func TestSetPairWithOneDev(t *testing.T) {
-	setPair("foo@example.com", []string{"user1"}, []string{"--file", "fixtures/test.config"})
-	expected := "user1"
+	gitconfig := initTestGitConfig("fixtures/test.config", t)
 
-	if currentUser() != expected {
-		t.Errorf("Expected %s got %s", expected, currentUser())
+	setPair("foo@example.com", []string{"user1"}, gitconfig)
+	expected := "user1"
+	actual := username(gitconfig)
+
+	if actual != expected {
+		t.Errorf("Expected %s got %s", expected, actual)
 	}
 }
 
 func TestSetPairWithTwoDevs(t *testing.T) {
 	pair := []string{"user1", "user2"}
 	formattedEmail := formatEmail("dev@example.com", pair)
-	setPair(formattedEmail, pair, []string{"--file", "fixtures/test.config"})
-	expectedUser := "user1 and user2"
-	expectedEmail := "dev+user1+user2@example.com"
+	gitconfig := initTestGitConfig("fixtures/test.config", t)
 
-	if currentUser() != expectedUser {
-		t.Errorf("Expected %s got %s", expectedUser, currentUser())
+	setPair(formattedEmail, pair, gitconfig)
+	expectedUser := "user1 and user2"
+	actualUser := username(gitconfig)
+	expectedEmail := "dev+user1+user2@example.com"
+	actualEmail := email(gitconfig)
+
+	if actualUser != expectedUser {
+		t.Errorf("Expected %s got %s", expectedUser, actualUser)
 	}
 
-	if currentEmail() != expectedEmail {
-		t.Errorf("Expected %s got %s", expectedEmail, currentEmail())
+	if actualEmail != expectedEmail {
+		t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
 	}
 }
 
