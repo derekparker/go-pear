@@ -121,15 +121,7 @@ func main() {
 	sanitizeDevNames(devs)
 
 	if opts.Unset {
-		err := gitconfig.Delete("user.name")
-		if err != nil {
-			os.Stderr.WriteString(err.Error() + "\n")
-		}
-
-		err = gitconfig.Delete("user.email")
-		if err != nil {
-			os.Stderr.WriteString(err.Error())
-		}
+		removePair(gitconfig)
 		os.Exit(0)
 	}
 
@@ -171,6 +163,18 @@ func setPair(email string, pairs []string, gitconfig *git.Config) {
 	err = gitconfig.SetString("user.email", email)
 	if err != nil {
 		printStderrAndDie(err)
+	}
+}
+
+func removePair(gitconfig *git.Config) {
+	err := gitconfig.Delete("user.name")
+	if err != nil {
+		os.Stderr.WriteString(err.Error() + "\n")
+	}
+
+	err = gitconfig.Delete("user.email")
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
 	}
 }
 
