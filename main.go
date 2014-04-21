@@ -79,7 +79,6 @@ func initGitConfig(opts *options) (*git.Config, error) {
 	}
 
 	if opts.Global {
-
 		glconfpath := path.Join(usr.HomeDir, ".gitconfig")
 
 		err = gitconf.AddFile(glconfpath, git.ConfigLevelGlobal, false)
