@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/libgit2/git2go"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/libgit2/git2go"
 )
 
 func mockHomeEnv(dir string) {
@@ -20,6 +21,20 @@ func mockHomeEnv(dir string) {
 	}
 
 	os.Setenv("HOME", dir)
+}
+
+func initializeRepo(p string) (*git.Config, error) {
+	repo, err := git.InitRepository(p, true)
+	if err != nil {
+		return nil, err
+	}
+
+	conf, err := repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	return conf, nil
 }
 
 func closeFile(f *os.File) {
@@ -170,6 +185,37 @@ func TestPearOneDevNoSavedEmail(t *testing.T) {
 
 	if readConf.Email != "dev@pear.biz" {
 		t.Error("Email was not saved.")
+	}
+}
+
+func TestPearWithinSubdirectory(t *testing.T) {
+	mockHomeEnv("fixtures/integration")
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A\n  devb: Full Name B"))
+	defer closeFile(pearrc)
+
+	os.Args = []string{"pear", "DevB", "DevA"}
+
+	err := os.MkdirAll("foo/bar", os.ModePerm|os.ModeExclusive|os.ModeDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll("foo")
+
+	conf, err := initializeRepo("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.Chdir("foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	main()
+
+	expected := "deva and devb <foo+deva+devb@example.com>"
+	if usr := username(conf); usr != expected {
+		t.Errorf("Expected %s, got %s", expected, usr)
 	}
 }
 
