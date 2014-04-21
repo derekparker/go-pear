@@ -51,7 +51,17 @@ func initGitConfig(opts *options) (*git.Config, error) {
 		return nil, err
 	}
 
-	repo, err := git.OpenRepository(wd)
+	usr, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	repopath, err := git.Discover(wd, false, []string{usr.HomeDir})
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := git.OpenRepository(repopath)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +79,6 @@ func initGitConfig(opts *options) (*git.Config, error) {
 	}
 
 	if opts.Global {
-		usr, err := user.Current()
-		if err != nil {
-			return nil, err
-		}
 
 		glconfpath := path.Join(usr.HomeDir, ".gitconfig")
 

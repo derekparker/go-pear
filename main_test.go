@@ -1,25 +1,73 @@
 package main
 
 import (
-	"github.com/libgit2/git2go"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/libgit2/git2go"
 )
 
-func mockHomeEnv(dir string) {
-	_, err := os.Open(dir)
+type repoTestFunc func(conf *git.Config)
+
+func withinStubRepo(t *testing.T, repoPath string, repoTest repoTestFunc) {
+	cwd, err := os.Getwd()
 	if err != nil {
-		mode := os.ModePerm
-		err = os.Mkdir(dir, mode)
+		t.Fatal(err)
+	}
+
+	conf, err := initializeRepo(repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(repoPath)
+
+	err = os.Chdir(repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repoTest(conf)
+
+	err = os.Chdir(cwd)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func mockHomeEnv(dir string) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		os.Stderr.WriteString("Could not get current directory\n")
+		os.Exit(2)
+	}
+
+	dir = path.Join(cwd, dir)
+	_, err = os.Open(dir)
+	if err != nil {
+		err = os.Mkdir(dir, os.ModePerm)
 		if err != nil {
-			os.Stderr.WriteString("Could not create directory")
+			os.Stderr.WriteString("Could not create directory\n")
 			os.Exit(2)
 		}
 	}
 
 	os.Setenv("HOME", dir)
+}
+
+func initializeRepo(p string) (*git.Config, error) {
+	repo, err := git.InitRepository(p, true)
+	if err != nil {
+		return nil, err
+	}
+
+	conf, err := repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	return conf, nil
 }
 
 func closeFile(f *os.File) {
@@ -171,6 +219,34 @@ func TestPearOneDevNoSavedEmail(t *testing.T) {
 	if readConf.Email != "dev@pear.biz" {
 		t.Error("Email was not saved.")
 	}
+}
+
+func TestPearWithinSubdirectory(t *testing.T) {
+	mockHomeEnv("fixtures/integration")
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A\n  devb: Full Name B"))
+	defer closeFile(pearrc)
+
+	withinStubRepo(t, "foo", func(conf *git.Config) {
+		err := os.MkdirAll("bar", os.ModePerm|os.ModeExclusive|os.ModeDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = os.Chdir("bar")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		os.Args = []string{"pear", "DevB", "DevA"}
+		main()
+
+		conf.Refresh()
+
+		expected := "Full Name A and Full Name B"
+		if usr := username(conf); usr != expected {
+			t.Errorf("Expected %s, got %s", expected, usr)
+		}
+	})
 }
 
 func TestCheckEmail(t *testing.T) {
