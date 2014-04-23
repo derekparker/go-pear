@@ -10,9 +10,8 @@ On OSX:
 
 For Linux we intend to be distributed via apt-get, until then, either download the latest release from github, or if you have the Go toolchain available use:
 
-	$ chmod +x script/prepare.sh
-	$ script/prepare.sh
-	$ go build -o pear
+	$ make prepare
+	$ make build
 
 to compile the binary.
 
