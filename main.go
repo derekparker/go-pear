@@ -101,6 +101,11 @@ func main() {
 		return
 	}
 
+	if opts.Version {
+		fmt.Printf("Pear version %s\n", version)
+		os.Exit(0)
+	}
+
 	gitconfig, err := initGitConfig(opts)
 	if err != nil {
 		printStderrAndDie(err)
@@ -110,11 +115,6 @@ func main() {
 
 	if len(os.Args) == 1 {
 		fmt.Println(username(gitconfig))
-		os.Exit(0)
-	}
-
-	if opts.Version {
-		fmt.Printf("Pear version %s\n", version)
 		os.Exit(0)
 	}
 
