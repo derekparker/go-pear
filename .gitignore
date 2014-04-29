@@ -5,3 +5,5 @@ pear
 go-pear
 libgit2
 tags
+*.dylib
+pkgconfig
