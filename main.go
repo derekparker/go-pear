@@ -16,7 +16,7 @@ import (
 	"gopkg.in/v1/yaml"
 )
 
-const version = "1.2.0"
+const version = "1.3.0"
 
 type Config struct {
 	Email string
