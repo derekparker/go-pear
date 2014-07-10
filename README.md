@@ -6,7 +6,7 @@ Pear is command line utility used while pairing to ensure that each programmer i
 
 On OSX:
 
-	$ brew tap hashrocket/formulas && brew install pear
+	$ brew tap hashrocket/formulas && brew install hashrocket/formulas/pear
 
 For Linux we intend to be distributed via apt-get, until then, either download the latest release from github, or if you have the Go toolchain available use:
 
