@@ -4,8 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/libgit2/git2go"
+	"path"
 )
 
 func TestPear(t *testing.T) {
@@ -13,37 +12,41 @@ func TestPear(t *testing.T) {
 	tmpstdin := mockStdin(t, "Person B")
 	tmp, oldstdout := mockStdout(t)
 	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A"))
+
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
 		closeFile(tmpstdin)
 		closeFile(pearrc)
 	}()
 
-	os.Args = []string{"pear", "DevB", "DevA", "--file", "fixtures/test.config"}
+	withinStubRepo(t, "foo", func() {
+		os.Args = []string{"pear", "DevB", "DevA", "--file", "fixtures/test.config"}
 
-	main()
+		main()
 
-	conf, err := readPearrc("fixtures/integration/.pearrc")
-	if err != nil {
-		t.Error(err)
-	}
+		conf, err := readPearrc(path.Join(os.Getenv("HOME"), ".pearrc"))
+		if err != nil {
+			t.Error(err)
+		}
 
-	if len(conf.Devs) != 2 {
-		t.Error("Devs were not recorded")
-	}
+		if len(conf.Devs) != 2 {
+			t.Error("Devs were not recorded")
+		}
 
-	expectedUser := "Full Name A and Person B"
-	gitconfig := initTestGitConfig("fixtures/test.config", t)
-	actualUser := username(gitconfig)
-	if actualUser != expectedUser {
-		t.Errorf("Expected %s got %s", expectedUser, actualUser)
-	}
+		expectedUser := "Full Name A and Person B"
+		_ = initTestGitConfig("fixtures/test.config", t)
+		actualUser := username()
 
-	expectedEmail := "foo+deva+devb@example.com"
-	actualEmail := email(gitconfig)
-	if actualEmail != expectedEmail {
-		t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
-	}
+		if actualUser != expectedUser {
+			t.Errorf("Expected %s got %s", expectedUser, actualUser)
+		}
+
+		expectedEmail := "foo+deva+devb@example.com"
+		actualEmail := email()
+		if actualEmail != expectedEmail {
+			t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
+		}
+	})
 }
 
 func TestPearOneDevNoSavedEmail(t *testing.T) {
@@ -51,33 +54,40 @@ func TestPearOneDevNoSavedEmail(t *testing.T) {
 	tmpstdin := mockStdin(t, "dev@pear.biz")
 	tmp, oldstdout := mockStdout(t)
 
-	pearrc := createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
 		closeFile(tmpstdin)
-		closeFile(pearrc)
 	}()
 
-	os.Args = []string{"pear", "dev1", "--email", "foo@biz.net", "--file", "fixtures/test.config"}
+	var pearrc *os.File
 
-	main()
+	withinStubRepo(t, "foo", func() {
+		pearrc = createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
 
-	readConf, err := readPearrc("fixtures/integration/.pearrc")
-	if err != nil {
-		t.Fatal(err)
-	}
+		os.Args = []string{"pear", "dev1", "--email", "foo@biz.net"}
 
-	if readConf.Email != "dev@pear.biz" {
-		t.Error("Email was not saved.")
-	}
+		main()
+
+		readConf, err := readPearrc(pearrcpath())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if readConf.Email != "dev@pear.biz" {
+			t.Error("Email was not saved.")
+		}
+	})
+
+	defer func() {
+		closeFile(pearrc)
+	}()
 }
 
 func TestPearWithinSubdirectory(t *testing.T) {
-	mockHomeEnv("fixtures/integration")
 	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A\n  devb: Full Name B"))
 	defer closeFile(pearrc)
 
-	withinStubRepo(t, "foo", func(conf *git.Config) {
+	withinStubRepo(t, "foo", func() {
 		err := os.MkdirAll("bar", os.ModePerm|os.ModeExclusive|os.ModeDir)
 		if err != nil {
 			t.Fatal(err)
@@ -91,10 +101,8 @@ func TestPearWithinSubdirectory(t *testing.T) {
 		os.Args = []string{"pear", "DevB", "DevA"}
 		main()
 
-		conf.Refresh()
-
 		expected := "Full Name A and Full Name B"
-		if usr := username(conf); usr != expected {
+		if usr := username(); usr != expected {
 			t.Errorf("Expected %s, got %s", expected, usr)
 		}
 	})
@@ -137,35 +145,39 @@ func TestCheckEmail(t *testing.T) {
 }
 
 func TestSetPairWithOneDev(t *testing.T) {
-	gitconfig := initTestGitConfig("fixtures/test.config", t)
+	withinStubRepo(t, "foo", func() {
+		_ = initTestGitConfig("fixtures/test.config", t)
 
-	setPair("foo@example.com", []string{"user1"}, gitconfig)
-	expected := "user1"
-	actual := username(gitconfig)
+		setPair("foo@example.com", []string{"user1"})
+		expected := "user1"
+		actual := username()
 
-	if actual != expected {
-		t.Errorf("Expected %s got %s", expected, actual)
-	}
+		if actual != expected {
+			t.Errorf("Expected %s got %s", expected, actual)
+		}
+	})
 }
 
 func TestSetPairWithTwoDevs(t *testing.T) {
-	pair := []string{"user1", "user2"}
-	formattedEmail := formatEmail("dev@example.com", pair)
-	gitconfig := initTestGitConfig("fixtures/test.config", t)
+	withinStubRepo(t, "foo", func() {
+		pair := []string{"user1", "user2"}
+		formattedEmail := formatEmail("dev@example.com", pair)
+		_ = initTestGitConfig("fixtures/test.config", t)
 
-	setPair(formattedEmail, pair, gitconfig)
-	expectedUser := "user1 and user2"
-	actualUser := username(gitconfig)
-	expectedEmail := "dev+user1+user2@example.com"
-	actualEmail := email(gitconfig)
+		setPair(formattedEmail, pair)
+		expectedUser := "user1 and user2"
+		actualUser := username()
+		expectedEmail := "dev+user1+user2@example.com"
+		actualEmail := email()
 
-	if actualUser != expectedUser {
-		t.Errorf("Expected %s got %s", expectedUser, actualUser)
-	}
+		if actualUser != expectedUser {
+			t.Errorf("Expected %s got %s", expectedUser, actualUser)
+		}
 
-	if actualEmail != expectedEmail {
-		t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
-	}
+		if actualEmail != expectedEmail {
+			t.Errorf("Expected %s got %s", expectedEmail, actualEmail)
+		}
+	})
 }
 
 func TestReadPearrc(t *testing.T) {
