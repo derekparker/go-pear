@@ -24,13 +24,14 @@ func withinStubRepo(t *testing.T, repoPath string, repoTest repoTestFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		err = os.Chdir(cwd)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	repoTest()
-
-	err = os.Chdir(cwd)
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func mockHomeEnv(dir string) {
