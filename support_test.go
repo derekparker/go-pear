@@ -70,10 +70,6 @@ func closeFile(f *os.File) {
 	os.Remove(name)
 }
 
-func initTestGitConfig(path string, t *testing.T) string {
-	return path
-}
-
 func createPearrc(t *testing.T, contents []byte) *os.File {
 	p := path.Join(os.Getenv("HOME"), ".pearrc")
 	f, err := os.Create(p)

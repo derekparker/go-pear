@@ -34,7 +34,7 @@ func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
 		}
 
 		expectedUser := "Full Name A and Person B"
-		_ = initTestGitConfig("fixtures/test.config", t)
+
 		actualUser := username()
 
 		if actualUser != expectedUser {
@@ -146,8 +146,6 @@ func TestCheckEmail(t *testing.T) {
 
 func TestSetPairWithOneDev(t *testing.T) {
 	withinStubRepo(t, "foo", func() {
-		_ = initTestGitConfig("fixtures/test.config", t)
-
 		setPair("foo@example.com", []string{"user1"})
 		expected := "user1"
 		actual := username()
@@ -162,7 +160,6 @@ func TestSetPairWithTwoDevs(t *testing.T) {
 	withinStubRepo(t, "foo", func() {
 		pair := []string{"user1", "user2"}
 		formattedEmail := formatEmail("dev@example.com", pair)
-		_ = initTestGitConfig("fixtures/test.config", t)
 
 		setPair(formattedEmail, pair)
 		expectedUser := "user1 and user2"
