@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -81,11 +82,13 @@ func main() {
 	)
 
 	setPair(email, fullnames)
+	writeHook(email, fullnames)
 	savePearrc(conf, pearrcpath())
 }
 
+
 func username() string {
-	output, err := git_config("user.name")
+	output, err := gitConfig("user.name")
 	if err != nil {
 		log.Fatal(output, err)
 	}
@@ -94,7 +97,7 @@ func username() string {
 }
 
 func email() string {
-	output, err := git_config("user.email")
+	output, err := gitConfig("user.email")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,30 +109,56 @@ func setPair(email string, pairs []string) {
 	pair := strings.Join(pairs, " and ")
 
 	// git config user.name <value>
-	_, err := git_config("user.name", pair)
+	_, err := gitConfig("user.name", pair)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = git_config("user.email", email)
+	_, err = gitConfig("user.email", email)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func writeHook(email string, pairs []string) {
+	var hookBuffer bytes.Buffer
+
+	hookBuffer.Write([]byte("cp $1 /tmp/COMMIT_MSG\n"))
+	hookBuffer.Write([]byte("echo \"\\n\\n\" > $1\n"))
+
+	for _, dev := range pairs {
+		hookBuffer.Write([]byte("echo \"Co-authored-by: "))
+		hookBuffer.Write([]byte(dev))
+		hookBuffer.Write([]byte(" <"))
+		hookBuffer.Write([]byte(email))
+		hookBuffer.Write([]byte(">"))
+		hookBuffer.Write([]byte("\""))
+		hookBuffer.Write([]byte(" >> $1\n"))
+	}
+
+	hookBuffer.Write([]byte("cat /tmp/COMMIT_MSG >> $1\n"))
+
+        hookPath := prepareCommitHookPath()
+
+	err := ioutil.WriteFile(hookPath, hookBuffer.Bytes(), os.ModeExclusive)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func removePair() {
-	_, err := git_config("--unset", "user.name")
+	_, err := gitConfig("--unset", "user.name")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = git_config("--unset", "user.email")
+	_, err = gitConfig("--unset", "user.email")
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func git_config(args ...string) (string, error) {
+func gitConfig(args ...string) (string, error) {
 	output, err := exec.Command("git", append([]string{"config"}, args...)...).CombinedOutput()
 	return string(output), err
 }
@@ -241,4 +270,13 @@ func sanitizeDevNames(devs []string) {
 	}
 
 	sort.Strings(devs)
+}
+
+func prepareCommitHookPath() string{
+	output, err := exec.Command("git", "rev-parse",  "--git-dir").CombinedOutput()
+	if err != nil {
+		log.Fatal("Could not find the git dir", err)
+	}
+
+	return (strings.Trim(string(output), "\n") + "/hooks/prepare-commit-msg")
 }
