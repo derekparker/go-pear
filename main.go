@@ -123,6 +123,7 @@ func setPair(email string, pairs []string) {
 func writeHook(email string, pairs []string) {
 	var hookBuffer bytes.Buffer
 
+	hookBuffer.Write([]byte("function addAuthors() {\n"))
 	hookBuffer.Write([]byte("cp $1 /tmp/COMMIT_MSG\n"))
 	hookBuffer.Write([]byte("echo \"\\n\\n\" > $1\n"))
 
@@ -137,6 +138,7 @@ func writeHook(email string, pairs []string) {
 	}
 
 	hookBuffer.Write([]byte("cat /tmp/COMMIT_MSG >> $1\n"))
+	hookBuffer.Write([]byte("}\n"))
 
         hookPath := prepareCommitHookPath()
 
@@ -145,6 +147,7 @@ func writeHook(email string, pairs []string) {
 		log.Fatal(err)
 	}
 }
+
 
 func removePair() {
 	_, err := gitConfig("--unset", "user.name")
