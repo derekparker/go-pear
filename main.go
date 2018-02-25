@@ -27,6 +27,7 @@ type options struct {
 	Email   string `short:"e" long:"email" description:"Base author email"`
 	Unset   bool   `short:"u" long:"unset" description:"Unset local pear information"`
 	Version bool   `short:"v" long:"version" description:"Print version string"`
+	Debug   bool   `short:"d" long:"debug" description:"Put debug information into git hook"`
 }
 
 func pearrcpath() string {
@@ -82,7 +83,7 @@ func main() {
 	)
 
 	setPair(email, fullnames)
-	writeHook(email, fullnames)
+	writeHook(email, fullnames, opts)
 	savePearrc(conf, pearrcpath())
 }
 
@@ -120,16 +121,20 @@ func setPair(email string, pairs []string) {
 	}
 }
 
-func writeHook(email string, pairs []string) {
+func writeHook(email string, pairs []string, opts *options) {
 	var hookBuffer bytes.Buffer
+	var debugStatements string
 
-	debugStatements := `
-	echo "First Arg: $1"
-	echo "Second Arg: $2"
-	echo "Third Arg: $3"
-	`
+	if opts.Debug {
+		debugStatements = `
+		echo "First Arg: $1"
+		echo "Second Arg: $2"
+		echo "Third Arg: $3"
+		`
+	}
 
 	hookBuffer.Write([]byte(debugStatements))
+	hookBuffer.Write([]byte("\n"))
 
 	hookBuffer.Write([]byte("function addAuthors() {\n"))
 	hookBuffer.Write([]byte("cp $1 /tmp/COMMIT_MSG\n"))
