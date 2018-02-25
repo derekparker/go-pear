@@ -148,7 +148,6 @@ func writeHook(email string, pairs []string) {
 	}
 }
 
-
 func removePair() {
 	_, err := gitConfig("--unset", "user.name")
 	if err != nil {
