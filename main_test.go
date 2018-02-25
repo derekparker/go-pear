@@ -7,7 +7,7 @@ import (
 	"path"
 )
 
-func TestPear(t *testing.T) {
+func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
 	tmpstdin := mockStdin(t, "Person B")
 	tmp, oldstdout := mockStdout(t)
@@ -20,7 +20,7 @@ func TestPear(t *testing.T) {
 	}()
 
 	withinStubRepo(t, "foo", func() {
-		os.Args = []string{"pear", "DevB", "DevA", "--file", "fixtures/test.config"}
+		os.Args = []string{"pear", "DevB", "DevA"}
 
 		main()
 
