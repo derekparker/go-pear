@@ -1,15 +1,15 @@
 package main
 
 import (
+	"log"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"testing"
-
-	"github.com/libgit2/git2go"
 )
 
-type repoTestFunc func(conf *git.Config)
+type repoTestFunc func()
 
 func withinStubRepo(t *testing.T, repoPath string, repoTest repoTestFunc) {
 	cwd, err := os.Getwd()
@@ -17,10 +17,7 @@ func withinStubRepo(t *testing.T, repoPath string, repoTest repoTestFunc) {
 		t.Fatal(err)
 	}
 
-	conf, err := initializeRepo(repoPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	initializeRepo(repoPath)
 	defer os.RemoveAll(repoPath)
 
 	err = os.Chdir(repoPath)
@@ -28,7 +25,7 @@ func withinStubRepo(t *testing.T, repoPath string, repoTest repoTestFunc) {
 		t.Fatal(err)
 	}
 
-	repoTest(conf)
+	repoTest()
 
 	err = os.Chdir(cwd)
 	if err != nil {
@@ -56,18 +53,14 @@ func mockHomeEnv(dir string) {
 	os.Setenv("HOME", dir)
 }
 
-func initializeRepo(p string) (*git.Config, error) {
-	repo, err := git.InitRepository(p, true)
+func initializeRepo(p string) (error) {
+	cmd := exec.Command("git", "init", p)
+	err := cmd.Run()
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	conf, err := repo.Config()
-	if err != nil {
-		return nil, err
-	}
-
-	return conf, nil
+	return err
 }
 
 func closeFile(f *os.File) {
@@ -76,18 +69,8 @@ func closeFile(f *os.File) {
 	os.Remove(name)
 }
 
-func initTestGitConfig(path string, t *testing.T) *git.Config {
-	gitconfig, err := git.NewConfig()
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = gitconfig.AddFile(path, git.ConfigLevelHighest, false)
-	if err != nil {
-		t.Error(err)
-	}
-
-	return gitconfig
+func initTestGitConfig(path string, t *testing.T) string {
+	return path
 }
 
 func createPearrc(t *testing.T, contents []byte) *os.File {
@@ -101,7 +84,7 @@ func createPearrc(t *testing.T, contents []byte) *os.File {
 	_, err = f.Write(contents)
 	if err != nil {
 		os.Stdout = os.Stderr
-		t.Fatal("Could not write to .pearrc %s", err)
+		t.Fatalf("Could not write to .pearrc %s", err)
 	}
 
 	return f

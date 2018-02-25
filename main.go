@@ -6,13 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
+	"os/exec"
 	"path"
 	"sort"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/libgit2/git2go"
 	"gopkg.in/v1/yaml"
 )
 
@@ -45,51 +44,6 @@ func parseFlags() ([]string, *options, error) {
 	return devs, opts, nil
 }
 
-func initGitConfig(opts *options) (*git.Config, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	usr, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
-
-	repopath, err := git.Discover(wd, false, []string{usr.HomeDir})
-	if err != nil {
-		return nil, err
-	}
-
-	repo, err := git.OpenRepository(repopath)
-	if err != nil {
-		return nil, err
-	}
-
-	gitconf, err := repo.Config()
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.File != "" {
-		err = gitconf.AddFile(opts.File, git.ConfigLevelApp, false)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if opts.Global {
-		glconfpath := path.Join(usr.HomeDir, ".gitconfig")
-
-		err = gitconf.AddFile(glconfpath, git.ConfigLevelGlobal, false)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return gitconf, nil
-}
-
 func printStderrAndDie(err error) {
 	os.Stderr.WriteString(err.Error())
 	os.Exit(1)
@@ -106,15 +60,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	gitconfig, err := initGitConfig(opts)
-	if err != nil {
-		printStderrAndDie(err)
-	}
-
-	defer gitconfig.Free()
-
 	if len(os.Args) == 1 {
-		fmt.Println(username(gitconfig))
+		fmt.Println(username())
 		os.Exit(0)
 	}
 
@@ -126,7 +73,7 @@ func main() {
 	sanitizeDevNames(devs)
 
 	if opts.Unset {
-		removePair(gitconfig)
+		removePair()
 		os.Exit(0)
 	}
 
@@ -135,51 +82,56 @@ func main() {
 		email     = formatEmail(checkEmail(conf), devs)
 	)
 
-	setPair(email, fullnames, gitconfig)
+	setPair(email, fullnames)
 	savePearrc(conf, pearrcpath())
 }
 
-func username(gitconfig *git.Config) string {
-	name, err := gitconfig.LookupString("user.name")
+func username() string {
+	name, err := exec.Command("git", "config", "user.name").Output()
 	if err != nil {
-		printStderrAndDie(err)
+		log.Fatal(err)
 	}
 
-	return name
+	return strings.Trim(string(name), "\n ")
 }
 
-func email(gitconfig *git.Config) string {
-	email, err := gitconfig.LookupString("user.email")
+func email() string {
+	email, err := exec.Command("git", "config", "user.email").Output()
 	if err != nil {
-		printStderrAndDie(err)
+		log.Fatal(err)
 	}
 
-	return email
+	return strings.Trim(string(email), "\n ")
 }
 
-func setPair(email string, pairs []string, gitconfig *git.Config) {
+func setPair(email string, pairs []string) {
 	pair := strings.Join(pairs, " and ")
 
-	err := gitconfig.SetString("user.name", pair)
+	// git config user.name <value>
+	cmd := exec.Command("git", "config", "user.name", pair)
+	err := cmd.Run()
 	if err != nil {
-		printStderrAndDie(err)
+		log.Fatal(err)
 	}
 
-	err = gitconfig.SetString("user.email", email)
+	cmd = exec.Command("git", "config", "user.email", email)
+	err = cmd.Run()
 	if err != nil {
-		printStderrAndDie(err)
+		log.Fatal(err)
 	}
 }
 
-func removePair(gitconfig *git.Config) {
-	err := gitconfig.Delete("user.name")
+func removePair() {
+	cmd := exec.Command("git", "config", "--unset", "user.name")
+	err := cmd.Run()
 	if err != nil {
-		os.Stderr.WriteString(err.Error() + "\n")
+		log.Fatal(err)
 	}
 
-	err = gitconfig.Delete("user.email")
+	cmd = exec.Command("git", "config", "--unset", "user.email")
+	err = cmd.Run()
 	if err != nil {
-		os.Stderr.WriteString(err.Error())
+		log.Fatal(err)
 	}
 }
 
@@ -237,7 +189,7 @@ func savePearrc(conf *Config, path string) error {
 	if err != nil {
 		return err
 	}
-
+	
 	err = ioutil.WriteFile(path, contents, os.ModeExclusive)
 	if err != nil {
 		return err
