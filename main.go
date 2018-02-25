@@ -85,52 +85,53 @@ func main() {
 }
 
 func username() string {
-	name, err := exec.Command("git", "config", "user.name").Output()
+	output, err := git_config("user.name")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(output, err)
 	}
 
-	return strings.Trim(string(name), "\n ")
+	return strings.Trim(string(output), "\n ")
 }
 
 func email() string {
-	email, err := exec.Command("git", "config", "user.email").Output()
+	output, err := git_config("user.email")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return strings.Trim(string(email), "\n ")
+	return strings.Trim(string(output), "\n ")
 }
 
 func setPair(email string, pairs []string) {
 	pair := strings.Join(pairs, " and ")
 
 	// git config user.name <value>
-	cmd := exec.Command("git", "config", "user.name", pair)
-	err := cmd.Run()
+	_, err := git_config("user.name", pair)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cmd = exec.Command("git", "config", "user.email", email)
-	err = cmd.Run()
+	_, err = git_config("user.email", email)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func removePair() {
-	cmd := exec.Command("git", "config", "--unset", "user.name")
-	err := cmd.Run()
+	_, err := git_config("--unset", "user.name")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cmd = exec.Command("git", "config", "--unset", "user.email")
-	err = cmd.Run()
+	_, err = git_config("--unset", "user.email")
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func git_config(args ...string) (string, error) {
+	output, err := exec.Command("git", append([]string{"config"}, args...)...).CombinedOutput()
+	return string(output), err
 }
 
 func checkEmail(conf *Config) string {
