@@ -123,6 +123,14 @@ func setPair(email string, pairs []string) {
 func writeHook(email string, pairs []string) {
 	var hookBuffer bytes.Buffer
 
+	debugStatements := `
+	echo "First Arg: $1"
+	echo "Second Arg: $2"
+	echo "Third Arg: $3"
+	`
+
+	hookBuffer.Write([]byte(debugStatements))
+
 	hookBuffer.Write([]byte("function addAuthors() {\n"))
 	hookBuffer.Write([]byte("cp $1 /tmp/COMMIT_MSG\n"))
 	hookBuffer.Write([]byte("echo \"\\n\\n\" > $1\n"))
@@ -138,7 +146,19 @@ func writeHook(email string, pairs []string) {
 	}
 
 	hookBuffer.Write([]byte("cat /tmp/COMMIT_MSG >> $1\n"))
-	hookBuffer.Write([]byte("}\n"))
+	hookBuffer.Write([]byte("}\n\n"))
+
+	caseStatement := `
+	case "$2,$3" in
+	  ,)
+	    addAuthors $1 ;;
+	  commit,)
+	    addAuthors $1 ;;
+	  *) ;;
+	esac
+	`
+
+	hookBuffer.Write([]byte(caseStatement))
 
         hookPath := prepareCommitHookPath()
 
