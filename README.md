@@ -58,12 +58,6 @@ Will configure the email associated with commits, the programmers involved will 
 
 	dev+chriserin+derekparker@hashrocket.com
 
-### Changing Pairs globally
-
-	$ pear --global chriserin derekparker
-
-Will configure git globally so that the contributing programmers will be credited in commits across all projects and repositories.
-
 ## How Pear works
 
 Pear works by changing your local git configuration, the configuration for a specific repository. Pear stores the full name of each developer in the ~/.pearrc so that a programmer will only be prompted once for his/her full name.
