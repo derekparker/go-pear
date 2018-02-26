@@ -9,9 +9,9 @@ import (
 
 func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
-	tmpstdin := mockStdin(t, "Person B")
+	tmpstdin := mockStdinUser(t, "Person B", "personb@example.com")
 	tmp, oldstdout := mockStdout(t)
-	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A"))
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva:\n    name: Full Name A"))
 
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
@@ -51,7 +51,7 @@ func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
 
 func TestPearOneDevNoSavedEmail(t *testing.T) {
 	mockHomeEnv("fixtures/integration")
-	tmpstdin := mockStdin(t, "dev@pear.biz")
+	tmpstdin := mockStdinEmail(t, "dev@pear.biz")
 	tmp, oldstdout := mockStdout(t)
 
 	defer func() {
@@ -84,7 +84,7 @@ func TestPearOneDevNoSavedEmail(t *testing.T) {
 }
 
 func TestPearWithinSubdirectory(t *testing.T) {
-	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva: Full Name A\n  devb: Full Name B"))
+	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva:\n    name: Full Name A\n    email: a@a.com\n  devb:\n    name: Full Name B\n    email: b@b.com"))
 	defer closeFile(pearrc)
 
 	withinStubRepo(t, "foo", func() {
@@ -112,7 +112,7 @@ func TestCheckEmail(t *testing.T) {
 	conf := Config{}
 
 	mockHomeEnv("fixtures/integration")
-	tempstdin := mockStdin(t, "dev@pear.biz")
+	tempstdin := mockStdinEmail(t, "dev@pear.biz")
 	tmp, oldstdout := mockStdout(t)
 	pearrc := createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
 
@@ -146,7 +146,7 @@ func TestCheckEmail(t *testing.T) {
 
 func TestSetPairWithOneDev(t *testing.T) {
 	withinStubRepo(t, "foo", func() {
-		setPair("foo@example.com", []string{"user1"})
+		setPair("foo@example.com", []Dev{ Dev{Name: "user1", Email: "email1"}})
 		expected := "user1"
 		actual := username()
 
@@ -159,9 +159,15 @@ func TestSetPairWithOneDev(t *testing.T) {
 func TestSetPairWithTwoDevs(t *testing.T) {
 	withinStubRepo(t, "foo", func() {
 		pair := []string{"user1", "user2"}
+
+		devValues := []Dev{
+			Dev{Name: "user1"},
+			Dev{Name: "user2"},
+		}
+
 		formattedEmail := formatEmail("dev@example.com", pair)
 
-		setPair(formattedEmail, pair)
+		setPair(formattedEmail, devValues)
 		expectedUser := "user1 and user2"
 		actualUser := username()
 		expectedEmail := "dev+user1+user2@example.com"
@@ -194,9 +200,9 @@ func TestReadPearrc(t *testing.T) {
 }
 
 func TestSavePearrc(t *testing.T) {
-	expected := map[string]string{
-		"dparker":   "Derek Parker",
-		"chriserin": "Chris Erin",
+	expected := map[string]Dev{
+		"dparker":   Dev{Name: "Derek Parker"},
+		"chriserin": Dev{Name: "Chris Erin"},
 	}
 
 	conf := Config{
@@ -229,12 +235,12 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 	expectedFullName := "Person B"
 	pair := []string{"knowndev", "newdev"}
 	conf := &Config{
-		Devs: map[string]string{
-			"knowndev": "Known Dev",
+		Devs: map[string]Dev{
+			"knowndev": Dev{Name: "Known Dev", Email: "knowndev@example.com"},
 		},
 	}
 
-	tmpstdin := mockStdin(t, "Person B")
+	tmpstdin := mockStdinUser(t, "Person B", "personb@example.com")
 	tmp, oldstdout := mockStdout(t)
 	defer func() {
 		cleanupStdout(t, tmp, oldstdout)
@@ -247,21 +253,12 @@ func TestCheckPairWithUnknownDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	output, err := ioutil.ReadAll(tmp)
-	if err != nil {
-		t.Error("Could not read from temp file")
-	}
-
-	if string(output) != "Please enter a full name for newdev:\n" {
-		t.Errorf("Question output was incorrect, got: %v", string(output))
-	}
-
 	fullName, ok := conf.Devs["newdev"]
 	if !ok {
 		t.Error("Dev was not found in conf")
 	}
 
-	if fullName != expectedFullName {
+	if fullName.Name != expectedFullName {
 		t.Errorf("Expected %s got %s", expectedFullName, fullName)
 	}
 }

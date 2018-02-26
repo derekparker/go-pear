@@ -1,4 +1,8 @@
 email: ""
 devs:
-  chriserin: Chris Erin
-  dparker: Derek Parker
+  chriserin:
+    name: Chris Erin
+    email: ""
+  dparker:
+    name: Derek Parker
+    email: ""

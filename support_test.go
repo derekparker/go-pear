@@ -87,13 +87,34 @@ func createPearrc(t *testing.T, contents []byte) *os.File {
 	return f
 }
 
-func mockStdin(t *testing.T, contents string) *os.File {
+func mockStdinUser(t *testing.T, fullName string, email string) *os.File {
 	tmp, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = tmp.WriteString(contents + "\n")
+	_, err = tmp.WriteString(fullName + "\n" + email +  "\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tmp.Seek(0, os.SEEK_SET)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	os.Stdin = tmp
+
+	return tmp
+}
+
+func mockStdinEmail(t *testing.T, email string) *os.File {
+	tmp, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tmp.WriteString(email + "\n")
 	if err != nil {
 		t.Fatal(err)
 	}

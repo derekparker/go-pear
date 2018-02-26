@@ -19,9 +19,14 @@ import (
 
 const version = "2.0.0.alpha"
 
+type Dev struct {
+	Name string
+	Email string
+}
+
 type Config struct {
 	Email string
-	Devs  map[string]string
+	Devs  map[string]Dev
 }
 
 type options struct {
@@ -79,12 +84,12 @@ func main() {
 	}
 
 	var (
-		fullnames = checkPair(devs, conf)
-		email     = formatEmail(checkEmail(conf), devs)
+		devValues  = checkPair(devs, conf)
+		email = formatEmail(checkEmail(conf), devs)
 	)
 
-	setPair(email, fullnames)
-	writeHook(email, fullnames, opts)
+	setPair(email, devValues)
+	writeHook(email, devValues, opts)
 	savePearrc(conf, pearrcpath())
 }
 
@@ -117,10 +122,15 @@ func email() string {
 	return strings.Trim(string(output), "\n ")
 }
 
-func setPair(email string, pairs []string) {
-	pair := strings.Join(pairs, " and ")
+func setPair(email string, pairs []Dev) {
 
-	// git config user.name <value>
+	var fullnames []string
+
+	for _, pair := range pairs {
+		fullnames = append(fullnames, pair.Name)
+	}
+	pair := strings.Join(fullnames, " and ")
+
 	_, err := gitConfig("user.name", pair)
 	if err != nil {
 		log.Fatal(err)
@@ -132,47 +142,47 @@ func setPair(email string, pairs []string) {
 	}
 }
 
-func writeHook(email string, pairs []string, opts *options) {
+func writeHook(email string, pairs []Dev, opts *options) {
 	var hookBuffer bytes.Buffer
 	var debugStatements string
 
 	if opts.Debug {
 		debugStatements = `
-		echo "First Arg: $1"
-		echo "Second Arg: $2"
-		echo "Third Arg: $3"
-		`
+echo "First Arg: $1"
+echo "Second Arg: $2"
+echo "Third Arg: $3"
+`
 	}
 
 	hookBuffer.Write([]byte(debugStatements))
 	hookBuffer.Write([]byte("\n"))
 
 	hookBuffer.Write([]byte("function addAuthors() {\n"))
-	hookBuffer.Write([]byte("cp $1 /tmp/COMMIT_MSG\n"))
-	hookBuffer.Write([]byte("echo \"\\n\\n\" > $1\n"))
+	hookBuffer.Write([]byte("  cp $1 /tmp/COMMIT_MSG\n"))
+	hookBuffer.Write([]byte("  echo \"\\n\\n\" > $1\n"))
 
 	for _, dev := range pairs {
-		hookBuffer.Write([]byte("echo \"Co-authored-by: "))
-		hookBuffer.Write([]byte(dev))
+		hookBuffer.Write([]byte("  echo \"Co-authored-by: "))
+		hookBuffer.Write([]byte(dev.Name))
 		hookBuffer.Write([]byte(" <"))
-		hookBuffer.Write([]byte(email))
+		hookBuffer.Write([]byte(dev.Email))
 		hookBuffer.Write([]byte(">"))
 		hookBuffer.Write([]byte("\""))
 		hookBuffer.Write([]byte(" >> $1\n"))
 	}
 
-	hookBuffer.Write([]byte("cat /tmp/COMMIT_MSG >> $1\n"))
-	hookBuffer.Write([]byte("}\n\n"))
+	hookBuffer.Write([]byte("  cat /tmp/COMMIT_MSG >> $1\n"))
+	hookBuffer.Write([]byte("}\n"))
 
 	caseStatement := `
-	case "$2,$3" in
-	  ,)
-	    addAuthors $1 ;;
-	  commit,)
-	    addAuthors $1 ;;
-	  *) ;;
-	esac
-	`
+case "$2,$3" in
+  ,)
+    addAuthors $1 ;;
+  commit,)
+    addAuthors $1 ;;
+  *) ;;
+esac
+`
 
 	hookBuffer.Write([]byte(caseStatement))
 
@@ -209,20 +219,38 @@ func checkEmail(conf *Config) string {
 	return conf.Email
 }
 
-func checkPair(pair []string, conf *Config) []string {
-	var fullnames []string
-	for _, dev := range pair {
-		if _, ok := conf.Devs[dev]; !ok {
-			conf.Devs[dev] = getName(dev)
+func checkPair(pair []string, conf *Config) []Dev {
+	var devValues []Dev
+
+	for _, devkey := range pair {
+		dev, ok := conf.Devs[devkey]
+
+		if !ok {
+			dev = Dev{Name: "", Email: ""}
 		}
 
-		fullnames = append(fullnames, conf.Devs[dev])
+		if nameok := dev.Name; nameok == "" {
+			dev.Name  = getDevName(devkey)
+		}
+
+		if emailok := dev.Email; emailok == "" {
+			dev.Email = getDevEmail(devkey)
+		}
+
+		devValues = append(devValues, dev)
+
+		conf.Devs[devkey] = dev
 	}
 
-	return fullnames
+	return devValues
 }
 
-func getName(devName string) string {
+func getDevEmail(devName string) string {
+	prompt := fmt.Sprintf("Please enter an email for %s (for github integration use email associated with github):", devName)
+	return promptForInput(prompt)
+}
+
+func getDevName(devName string) string {
 	prompt := fmt.Sprintf("Please enter a full name for %s:", devName)
 	return promptForInput(prompt)
 }
@@ -241,6 +269,7 @@ func promptForInput(prompt string) string {
 }
 
 func readInput() string {
+	os.Stdin.Seek(0, 0)
 	buf := bufio.NewReader(os.Stdin)
 	inputString, err := buf.ReadString('\n')
 	if err != nil {
@@ -266,7 +295,7 @@ func savePearrc(conf *Config, path string) error {
 
 func readPearrc(path string) (*Config, error) {
 	conf := &Config{
-		Devs: make(map[string]string),
+		Devs: make(map[string]Dev),
 	}
 
 	file, err := os.Open(path)
