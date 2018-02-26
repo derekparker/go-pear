@@ -11,6 +11,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/v1/yaml"
@@ -91,7 +92,17 @@ func main() {
 func username() string {
 	output, err := gitConfig("user.name")
 	if err != nil {
-		log.Fatal(output, err)
+		var exitCode int
+
+		if exitError, ok := err.(*exec.ExitError); ok {
+			ws := exitError.Sys().(syscall.WaitStatus)
+			exitCode = ws.ExitStatus()
+			if exitCode == 1 {
+				log.Fatal("No git user is currently set, try `git config user.name` to confirm")
+			} else {
+				log.Fatal(output, err)
+			}
+		}
 	}
 
 	return strings.Trim(string(output), "\n ")
