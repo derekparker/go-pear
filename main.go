@@ -189,8 +189,12 @@ esac
 
         hookPath := prepareCommitHookPath()
 
-	err := ioutil.WriteFile(hookPath, hookBuffer.Bytes(), os.ModeExclusive)
+	err := ioutil.WriteFile(hookPath, hookBuffer.Bytes(), 0755)
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.Chmod(hookPath, 0755); err != nil {
 		log.Fatal(err)
 	}
 }
