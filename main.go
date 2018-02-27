@@ -160,7 +160,7 @@ echo "Third Arg: $3"
 
 	hookBuffer.Write([]byte("addAuthors() {\n"))
 	hookBuffer.Write([]byte("  cp $1 /tmp/COMMIT_MSG\n"))
-	hookBuffer.Write([]byte("  echo \"\\n\\n\" > $1\n"))
+	hookBuffer.Write([]byte("  echo \"\\n\" > $1\n"))
 
 	for _, dev := range pairs {
 		hookBuffer.Write([]byte("  echo \"Co-authored-by: "))
