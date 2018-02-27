@@ -290,7 +290,7 @@ func savePearrc(conf *Config, path string) error {
 		return err
 	}
 	
-	err = ioutil.WriteFile(path, contents, os.ModeExclusive)
+	err = ioutil.WriteFile(path, contents, 0644)
 	if err != nil {
 		return err
 	}
