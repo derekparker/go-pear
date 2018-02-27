@@ -158,7 +158,7 @@ echo "Third Arg: $3"
 	hookBuffer.Write([]byte(debugStatements))
 	hookBuffer.Write([]byte("\n"))
 
-	hookBuffer.Write([]byte("function addAuthors() {\n"))
+	hookBuffer.Write([]byte("addAuthors() {\n"))
 	hookBuffer.Write([]byte("  cp $1 /tmp/COMMIT_MSG\n"))
 	hookBuffer.Write([]byte("  echo \"\\n\\n\" > $1\n"))
 
