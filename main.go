@@ -154,6 +154,7 @@ echo "Third Arg: $3"
 `
 	}
 
+	hookBuffer.Write([]byte("#!/bin/sh\n\n"))
 	hookBuffer.Write([]byte(debugStatements))
 	hookBuffer.Write([]byte("\n"))
 
