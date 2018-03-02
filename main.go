@@ -235,7 +235,7 @@ func checkPair(pair []string, conf *Config) []Dev {
 		}
 
 		if nameok := dev.Name; nameok == "" {
-			dev.Name  = getDevName(devkey)
+			dev.Name  = getDevFullName(devkey)
 		}
 
 		if emailok := dev.Email; emailok == "" {
@@ -255,9 +255,15 @@ func getDevEmail(devName string) string {
 	return promptForInput(prompt)
 }
 
-func getDevName(devName string) string {
-	prompt := fmt.Sprintf("Please enter a full name for %s:", devName)
-	return promptForInput(prompt)
+func getDevFullName(devName string) string {
+	var devFullName string
+
+	for devFullName == "" {
+		prompt := fmt.Sprintf("Please enter a full name for %s:", devName)
+		devFullName = promptForInput(prompt)
+	}
+
+	return devFullName
 }
 
 func getEmail() string {
