@@ -81,6 +81,7 @@ func main() {
 
 	if opts.Unset {
 		removePair()
+		removeHook()
 		os.Exit(0)
 	}
 
@@ -143,6 +144,12 @@ func setPair(email string, pairs []Dev) {
 	}
 }
 
+func removeHook() {
+	hookPath := prepareCommitHookPath()
+
+	os.Remove(hookPath)
+}
+
 func writeHook(email string, pairs []Dev, opts *options) {
 	var hookBuffer bytes.Buffer
 	var debugStatements string
@@ -203,12 +210,16 @@ esac
 func removePair() {
 	_, err := gitConfig("--unset", "user.name")
 	if err != nil {
-		log.Fatal(err)
+		if err.Error() != "exit status 5" {
+			log.Fatal(err)
+		}
 	}
 
 	_, err = gitConfig("--unset", "user.email")
 	if err != nil {
-		log.Fatal(err)
+		if err.Error() != "exit status 5" {
+			log.Fatal(err)
+		}
 	}
 }
 
