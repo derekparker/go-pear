@@ -9,10 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"syscall"
-	"regexp"
 
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/v1/yaml"
@@ -21,7 +21,7 @@ import (
 const version = "2.1.1.alpha"
 
 type Dev struct {
-	Name string
+	Name  string
 	Email string
 }
 
@@ -51,6 +51,11 @@ func parseFlags() ([]string, *options, error) {
 	return devs, opts, nil
 }
 
+func inGitRepository() bool {
+	_, err := exec.Command("git", "rev-parse", "--is-inside-work-tree").CombinedOutput()
+	return err == nil
+}
+
 func printStderrAndDie(err error) {
 	os.Stderr.WriteString(err.Error())
 	os.Exit(1)
@@ -65,6 +70,11 @@ func main() {
 	if opts.Version {
 		fmt.Printf("Pear version %s\n", version)
 		os.Exit(0)
+	}
+
+	if !inGitRepository() {
+		fmt.Println("Pear only works in a git repository")
+		os.Exit(1)
 	}
 
 	if len(os.Args) == 1 {
@@ -86,15 +96,14 @@ func main() {
 	}
 
 	var (
-		devValues  = checkPair(devs, conf)
-		email = formatEmail(checkEmail(conf), devs)
+		devValues = checkPair(devs, conf)
+		email     = formatEmail(checkEmail(conf), devs)
 	)
 
 	setPair(email, devValues)
 	writeHook(email, devValues, opts)
 	savePearrc(conf, pearrcpath())
 }
-
 
 func username() string {
 	output, err := gitConfig("user.name")
@@ -195,7 +204,7 @@ esac
 
 	hookBuffer.Write([]byte(caseStatement))
 
-        hookPath := prepareCommitHookPath()
+	hookPath := prepareCommitHookPath()
 
 	err := ioutil.WriteFile(hookPath, hookBuffer.Bytes(), 0755)
 	if err != nil {
@@ -247,7 +256,7 @@ func checkPair(pair []string, conf *Config) []Dev {
 		}
 
 		if nameok := dev.Name; nameok == "" {
-			dev.Name  = getDevFullName(devkey)
+			dev.Name = getDevFullName(devkey)
 		}
 
 		if emailok := dev.Email; emailok == "" {
@@ -320,7 +329,7 @@ func savePearrc(conf *Config, path string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	err = ioutil.WriteFile(path, contents, 0644)
 	if err != nil {
 		return err
@@ -375,8 +384,8 @@ func sanitizeDevNames(devs []string) {
 	sort.Strings(devs)
 }
 
-func prepareCommitHookPath() string{
-	output, err := exec.Command("git", "rev-parse",  "--git-dir").CombinedOutput()
+func prepareCommitHookPath() string {
+	output, err := exec.Command("git", "rev-parse", "--git-dir").CombinedOutput()
 	if err != nil {
 		log.Fatal("Could not find the git dir", err)
 	}
