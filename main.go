@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"syscall"
+	"regexp"
 
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/v1/yaml"
@@ -267,7 +268,20 @@ func getDevFullName(devName string) string {
 }
 
 func getEmail() string {
-	return promptForInput("Please provide base author email:")
+	var baseAuthorEmail string
+
+	re := regexp.MustCompile("^[^@]+@[^@]+$")
+
+	for baseAuthorEmail == "" || !re.MatchString(baseAuthorEmail) {
+
+		baseAuthorEmail = promptForInput("Please provide base author email:")
+
+		if !re.MatchString(baseAuthorEmail) {
+			fmt.Println("Invalid")
+		}
+	}
+
+	return baseAuthorEmail
 }
 
 func promptForInput(prompt string) string {
