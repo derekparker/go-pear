@@ -2,9 +2,11 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
-	"testing"
 	"path"
+	"strings"
+	"testing"
 )
 
 func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
@@ -146,7 +148,7 @@ func TestCheckEmail(t *testing.T) {
 
 func TestSetPairWithOneDev(t *testing.T) {
 	withinStubRepo(t, "foo", func() {
-		setPair("foo@example.com", []Dev{ Dev{Name: "user1", Email: "email1"}})
+		setPair("foo@example.com", []Dev{Dev{Name: "user1", Email: "email1"}}, []string{"user1"})
 		expected := "user1"
 		actual := username()
 
@@ -167,7 +169,7 @@ func TestSetPairWithTwoDevs(t *testing.T) {
 
 		formattedEmail := formatEmail("dev@example.com", pair)
 
-		setPair(formattedEmail, devValues)
+		setPair(formattedEmail, devValues, []string{"user1", "user2"})
 		expectedUser := "user1 and user2"
 		actualUser := username()
 		expectedEmail := "dev+user1+user2@example.com"
@@ -281,4 +283,88 @@ func TestEmailFormat(t *testing.T) {
 			t.Errorf("Expected %s, got %s", test.expected, actual)
 		}
 	}
+}
+
+func TestAppendCommitMessageAugmentation(t *testing.T) {
+	withinStubRepo(t, "foo", func() {
+		err := ioutil.WriteFile(".git/config", []byte("[pear]\n\tdevs = mattpolito\n"), os.ModeExclusive)
+		var revision string
+		messageSource := "commit"
+
+		commitMessageFile, _ := ioutil.TempFile("", "")
+		commitMessageFile.WriteString("abc123")
+		commitMessageFile.Close()
+
+		defer os.Remove(commitMessageFile.Name())
+
+		devs := map[string]Dev{
+			"mattpolito": Dev{Name: "Matt Polito", Email: "matt.polito@gmail.com"},
+		}
+
+		conf := &Config{
+			Devs: devs,
+		}
+
+		augmentCommitMessage(
+			commitMessageFile.Name(),
+			messageSource,
+			revision,
+			conf,
+		)
+
+		contents, err := ioutil.ReadFile(commitMessageFile.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if !strings.Contains(string(contents), "Co-authored-by: Matt Polito <matt.polito@gmail.com>") {
+			t.Error("The Co-author line was not included in the commit message")
+		}
+
+		if !strings.Contains(string(contents), "abc123") {
+			t.Error("The existing contents were replaced")
+		}
+	})
+}
+
+func TestAppendCommitMessageAugmentationWithMerge(t *testing.T) {
+	withinStubRepo(t, "foo", func() {
+		err := ioutil.WriteFile(".git/config", []byte("[pear]\n\tdevs = mattpolito\n"), os.ModeExclusive)
+		var revision string
+		messageSource := "merge"
+
+		commitMessageFile, _ := ioutil.TempFile("", "")
+		commitMessageFile.WriteString("abc123")
+		commitMessageFile.Close()
+
+		defer os.Remove(commitMessageFile.Name())
+
+		devs := map[string]Dev{
+			"mattpolito": Dev{Name: "Matt Polito", Email: "matt.polito@gmail.com"},
+		}
+
+		conf := &Config{
+			Devs: devs,
+		}
+
+		augmentCommitMessage(
+			commitMessageFile.Name(),
+			messageSource,
+			revision,
+			conf,
+		)
+
+		contents, err := ioutil.ReadFile(commitMessageFile.Name())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if strings.Contains(string(contents), "Co-authored-by: Matt Polito <matt.polito@gmail.com>") {
+			t.Error("The Co-author line was not included in the commit message")
+		}
+
+		if !strings.Contains(string(contents), "abc123") {
+			t.Error("The existing contents were replaced")
+		}
+	})
 }

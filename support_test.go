@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -54,7 +54,7 @@ func mockHomeEnv(dir string) {
 	os.Setenv("HOME", dir)
 }
 
-func initializeRepo(p string) (error) {
+func initializeRepo(p string) error {
 	cmd := exec.Command("git", "init", p)
 	err := cmd.Run()
 	if err != nil {
@@ -93,7 +93,7 @@ func mockStdinUser(t *testing.T, fullName string, email string) *os.File {
 		t.Fatal(err)
 	}
 
-	_, err = tmp.WriteString(fullName + "\n" + email +  "\n")
+	_, err = tmp.WriteString(fullName + "\n" + email + "\n")
 	if err != nil {
 		t.Fatal(err)
 	}

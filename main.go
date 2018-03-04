@@ -34,7 +34,7 @@ type options struct {
 	Email   string `short:"e" long:"email" description:"Base author email"`
 	Unset   bool   `short:"u" long:"unset" description:"Unset local pear information"`
 	Version bool   `short:"v" long:"version" description:"Print version string"`
-	Debug   bool   `short:"d" long:"debug" description:"Put debug information into git hook"`
+	Augment bool   `short:"a" long:"augment-commit-message" description:"Used within the git hook to write Co-authors to commit message"`
 }
 
 func pearrcpath() string {
@@ -77,6 +77,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	if opts.Unset {
+		removePair()
+		removeHook()
+		os.Exit(0)
+	}
+
 	if len(os.Args) == 1 {
 		fmt.Println(username())
 		os.Exit(0)
@@ -87,20 +93,37 @@ func main() {
 		printStderrAndDie(err)
 	}
 
-	sanitizeDevNames(devs)
+	if opts.Augment {
+		var revision, source string
 
-	if opts.Unset {
-		removePair()
-		removeHook()
+		if len(devs) == 0 {
+			log.Fatal("A file name as the first argument is required for Augment")
+		}
+
+		if len(devs) < 3 {
+			revision = ""
+		} else {
+			revision = devs[2]
+		}
+
+		if len(devs) < 2 {
+			source = ""
+		} else {
+			source = devs[1]
+		}
+
+		augmentCommitMessage(devs[0], source, revision, conf)
 		os.Exit(0)
 	}
+
+	sanitizeDevNames(devs)
 
 	var (
 		devValues = checkPair(devs, conf)
 		email     = formatEmail(checkEmail(conf), devs)
 	)
 
-	setPair(email, devValues)
+	setPair(email, devValues, devs)
 	writeHook(email, devValues, opts)
 	savePearrc(conf, pearrcpath())
 }
@@ -133,7 +156,7 @@ func email() string {
 	return strings.Trim(string(output), "\n ")
 }
 
-func setPair(email string, pairs []Dev) {
+func setPair(email string, pairs []Dev, devs []string) {
 
 	var fullnames []string
 
@@ -142,7 +165,12 @@ func setPair(email string, pairs []Dev) {
 	}
 	pair := strings.Join(fullnames, " and ")
 
-	_, err := gitConfig("user.name", pair)
+	_, err := gitConfig("pear.devs", strings.Join(devs, ","))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = gitConfig("user.name", pair)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,6 +181,27 @@ func setPair(email string, pairs []Dev) {
 	}
 }
 
+func getCurrentDevValues(conf *Config) []Dev {
+	var devValues []Dev
+	devs, err := gitConfig("pear.devs")
+
+	if err != nil {
+		fmt.Println("Could not read git config for pairs")
+		log.Fatal(err)
+	}
+
+	for _, devkey := range strings.Split(devs, ",") {
+		dev, ok := conf.Devs[strings.Trim(devkey, "\n ")]
+		if !ok {
+			log.Fatal("No dev found: " + devkey)
+		}
+
+		devValues = append(devValues, dev)
+	}
+
+	return devValues
+}
+
 func removeHook() {
 	hookPath := prepareCommitHookPath()
 
@@ -161,57 +210,29 @@ func removeHook() {
 
 func writeHook(email string, pairs []Dev, opts *options) {
 	var hookBuffer bytes.Buffer
-	var debugStatements string
-
-	if opts.Debug {
-		debugStatements = `
-echo "First Arg: $1"
-echo "Second Arg: $2"
-echo "Third Arg: $3"
-`
-	}
-
-	hookBuffer.Write([]byte("#!/bin/sh\n\n"))
-	hookBuffer.Write([]byte(debugStatements))
-	hookBuffer.Write([]byte("\n"))
-
-	hookBuffer.Write([]byte("addAuthors() {\n"))
-	hookBuffer.Write([]byte("  cp $1 /tmp/COMMIT_MSG\n"))
-	hookBuffer.Write([]byte("  echo \"\\n\" > $1\n"))
-
-	for _, dev := range pairs {
-		hookBuffer.Write([]byte("  echo \"Co-authored-by: "))
-		hookBuffer.Write([]byte(dev.Name))
-		hookBuffer.Write([]byte(" <"))
-		hookBuffer.Write([]byte(dev.Email))
-		hookBuffer.Write([]byte(">"))
-		hookBuffer.Write([]byte("\""))
-		hookBuffer.Write([]byte(" >> $1\n"))
-	}
-
-	hookBuffer.Write([]byte("  cat /tmp/COMMIT_MSG >> $1\n"))
-	hookBuffer.Write([]byte("}\n"))
-
-	caseStatement := `
-case "$2,$3" in
-  ,)
-    addAuthors $1 ;;
-  commit,)
-    addAuthors $1 ;;
-  *) ;;
-esac
-`
-
-	hookBuffer.Write([]byte(caseStatement))
 
 	hookPath := prepareCommitHookPath()
 
-	err := ioutil.WriteFile(hookPath, hookBuffer.Bytes(), 0755)
+	var contents []byte
+	var err error
+
+	contents, err = ioutil.ReadFile(hookPath)
+	if err != nil {
+		contents = []byte("")
+	}
+
+	re := regexp.MustCompile("(?m)[\r\n]+^.*pear.*$")
+	replacedString := re.ReplaceAllString(string(contents), "")
+
+	hookBuffer.Write([]byte(replacedString))
+	hookBuffer.Write([]byte("\npear --augment-commit-message $1 $2 $3\n"))
+
+	err = ioutil.WriteFile(hookPath, hookBuffer.Bytes(), 0755)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := os.Chmod(hookPath, 0755); err != nil {
+	if err = os.Chmod(hookPath, 0755); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -391,4 +412,37 @@ func prepareCommitHookPath() string {
 	}
 
 	return (strings.Trim(string(output), "\n") + "/hooks/prepare-commit-msg")
+}
+
+func augmentCommitMessage(filePath string, source string, revision string, conf *Config) {
+	pairs := getCurrentDevValues(conf)
+
+	switch source + "," + revision {
+	case ",":
+		addCoauthorsToCommitMessage(filePath, pairs)
+	case "commit,":
+		addCoauthorsToCommitMessage(filePath, pairs)
+	}
+}
+
+func addCoauthorsToCommitMessage(filePath string, pairs []Dev) {
+	contents, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var commitMessageBuffer bytes.Buffer
+	commitMessageBuffer.Write([]byte("\n\n"))
+
+	for _, dev := range pairs {
+		commitMessageBuffer.Write([]byte("Co-authored-by: "))
+		commitMessageBuffer.Write([]byte(dev.Name))
+		commitMessageBuffer.Write([]byte(" <"))
+		commitMessageBuffer.Write([]byte(dev.Email))
+		commitMessageBuffer.Write([]byte(">\n"))
+	}
+
+	commitMessageBuffer.Write(contents)
+
+	ioutil.WriteFile(filePath, commitMessageBuffer.Bytes(), 0644)
 }
