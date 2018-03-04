@@ -31,10 +31,10 @@ type Config struct {
 }
 
 type options struct {
-	Email   string `short:"e" long:"email" description:"Base author email"`
-	Unset   bool   `short:"u" long:"unset" description:"Unset local pear information"`
-	Version bool   `short:"v" long:"version" description:"Print version string"`
-	Augment bool   `short:"a" long:"augment-commit-message" description:"Used within the git hook to write Co-authors to commit message"`
+	Unset       bool   `short:"u" long:"unset" description:"Unset local pear information"`
+	Version     bool   `short:"v" long:"version" description:"Print version string"`
+	Augment     bool   `short:"a" long:"augment-commit-message" description:"Used within the git hook to write Co-authors to commit message"`
+	Integration string `short:"i" long:"github-integration" description:"Takes values on or off, to turn on or off github co-author integration"`
 }
 
 func pearrcpath() string {
@@ -65,6 +65,19 @@ func main() {
 	devs, opts, err := parseFlags()
 	if err != nil {
 		return
+	}
+
+	if opts.Integration != "" {
+		switch opts.Integration {
+		case "on":
+			writeHook()
+			gitConfig("pear.githubIntegration", "true")
+		case "off":
+			removeHook()
+			gitConfig("pear.githubIntegration", "false")
+		default:
+			fmt.Println("Integration options must be either 'on' or 'off'")
+		}
 	}
 
 	if opts.Version {
@@ -124,7 +137,9 @@ func main() {
 	)
 
 	setPair(email, devValues, devs)
-	writeHook(email, devValues, opts)
+	if value, _ := gitConfig("pear.githubIntegration"); strings.Trim(value, "\n ") == "true" {
+		writeHook()
+	}
 	savePearrc(conf, pearrcpath())
 }
 
@@ -226,7 +241,7 @@ func removeHook() {
 	}
 }
 
-func writeHook(email string, pairs []Dev, opts *options) {
+func writeHook() {
 	var hookBuffer bytes.Buffer
 
 	hookPath := prepareCommitHookPath()

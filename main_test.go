@@ -51,40 +51,6 @@ func TestPearTwoDevsOneWithoutEmail(t *testing.T) {
 	})
 }
 
-func TestPearOneDevNoSavedEmail(t *testing.T) {
-	mockHomeEnv("fixtures/integration")
-	tmpstdin := mockStdinEmail(t, "dev@pear.biz")
-	tmp, oldstdout := mockStdout(t)
-
-	defer func() {
-		cleanupStdout(t, tmp, oldstdout)
-		closeFile(tmpstdin)
-	}()
-
-	var pearrc *os.File
-
-	withinStubRepo(t, "foo", func() {
-		pearrc = createPearrc(t, []byte("devs:\n  dev1: Full Name A"))
-
-		os.Args = []string{"pear", "dev1", "--email", "foo@biz.net"}
-
-		main()
-
-		readConf, err := readPearrc(pearrcpath())
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if readConf.Email != "dev@pear.biz" {
-			t.Error("Email was not saved.")
-		}
-	})
-
-	defer func() {
-		closeFile(pearrc)
-	}()
-}
-
 func TestPearWithinSubdirectory(t *testing.T) {
 	pearrc := createPearrc(t, []byte("email: foo@example.com\ndevs:\n  deva:\n    name: Full Name A\n    email: a@a.com\n  devb:\n    name: Full Name B\n    email: b@b.com"))
 	defer closeFile(pearrc)
