@@ -203,9 +203,27 @@ func getCurrentDevValues(conf *Config) []Dev {
 }
 
 func removeHook() {
+	var hookBuffer bytes.Buffer
+
 	hookPath := prepareCommitHookPath()
 
-	os.Remove(hookPath)
+	var contents []byte
+	var err error
+
+	contents, err = ioutil.ReadFile(hookPath)
+	if err != nil {
+		contents = []byte("")
+	}
+
+	re := regexp.MustCompile("(?m)[\r\n]+^.*pear.*$")
+	replacedString := re.ReplaceAllString(string(contents), "")
+
+	hookBuffer.Write([]byte(replacedString))
+
+	err = ioutil.WriteFile(hookPath, hookBuffer.Bytes(), 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func writeHook(email string, pairs []Dev, opts *options) {
