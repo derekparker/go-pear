@@ -18,7 +18,7 @@ import (
 	"gopkg.in/v1/yaml"
 )
 
-const version = "2.1.2.alpha"
+const version = "2.1.3.alpha"
 
 type Dev struct {
 	Name  string
