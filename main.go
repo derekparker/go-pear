@@ -67,6 +67,16 @@ func main() {
 		return
 	}
 
+	if opts.Version {
+		fmt.Printf("Pear version %s\n", version)
+		os.Exit(0)
+	}
+
+	if !inGitRepository() {
+		fmt.Println("Pear only works in a git repository")
+		os.Exit(1)
+	}
+
 	if opts.Integration != "" {
 		switch opts.Integration {
 		case "on":
@@ -78,16 +88,7 @@ func main() {
 		default:
 			fmt.Println("Integration options must be either 'on' or 'off'")
 		}
-	}
-
-	if opts.Version {
-		fmt.Printf("Pear version %s\n", version)
 		os.Exit(0)
-	}
-
-	if !inGitRepository() {
-		fmt.Println("Pear only works in a git repository")
-		os.Exit(1)
 	}
 
 	if opts.Unset {
@@ -137,10 +138,15 @@ func main() {
 	)
 
 	setPair(email, devValues, devs)
-	if value, _ := gitConfig("pear.githubIntegration"); strings.Trim(value, "\n ") == "true" {
+	if githubIntegration() {
 		writeHook()
 	}
 	savePearrc(conf, pearrcpath())
+}
+
+func githubIntegration() bool {
+	value, _ := gitConfig("pear.githubIntegration")
+	return strings.Trim(value, "\n ") != "false"
 }
 
 func username() string {
@@ -313,7 +319,7 @@ func checkPair(pair []string, conf *Config) []Dev {
 			dev.Name = getDevFullName(devkey)
 		}
 
-		if emailok := dev.Email; emailok == "" {
+		if emailok := dev.Email; emailok == "" && githubIntegration() {
 			dev.Email = getDevEmail(devkey)
 		}
 
